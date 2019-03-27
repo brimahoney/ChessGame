@@ -18,13 +18,20 @@ public class Squad
     private Knight[] knights = new Knight[2];
     private Rook[] rooks = new Rook[2];
     private Pawn[] pawns = new Pawn[8];
+    private final TeamColor color;
     
     private ChessPiece[] pieces; 
     
     public Squad(TeamColor color)
     {
+        this.color = color;
         pieces = new ChessPiece[16];
         createSquad(color);
+    }
+    
+    public TeamColor getColor()
+    {
+        return this.color;
     }
     
     public ChessPiece[] getSquad()

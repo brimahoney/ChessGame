@@ -19,6 +19,7 @@ public class ChessPiece extends ImageView
     private final Piece piece;
     private final int imageViewWidthAndHeight = 80;
     
+    private boolean isAlive = true;
     
     private double mouseX = 0;
     private double mouseY = 0;
@@ -89,6 +90,16 @@ public class ChessPiece extends ImageView
         return piece.getStrength();
     }
     
+    public boolean isIsAlive() 
+    {
+        return isAlive;
+    }
+
+    public void setIsAlive(boolean isAlive) 
+    {
+        this.isAlive = isAlive;
+    }
+
     private EventHandler<MouseEvent> pressMouse() 
     {
         EventHandler<MouseEvent> mousePressHandler = new EventHandler<MouseEvent>() 

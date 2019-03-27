@@ -31,6 +31,7 @@ public class ChessGame extends Application
 
     private final Squad whiteSquad;
     private final Squad blackSquad;
+    private final MoveCalcThreadPool moveCalculator;
     
     public ChessGame()
     {
@@ -56,6 +57,8 @@ public class ChessGame extends Application
             if(null != aSquare)
                 aSquare.setCurrentPiece(piece);
         }
+        
+        moveCalculator = new MoveCalcThreadPool(squares);
     }
     
     @Override
@@ -213,5 +216,10 @@ public class ChessGame extends Application
     public void endTurn()
     {
         
+    }
+    
+    public void stop()
+    {
+        this.moveCalculator.shutDown();
     }
 }
