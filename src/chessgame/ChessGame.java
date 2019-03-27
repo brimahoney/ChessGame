@@ -142,6 +142,7 @@ public class ChessGame extends Application
                 if(null == square.getCurrentPiece())
                 {
                     movePiece(selectedPiece, selectedSquare, square);
+                    endTurn();
                 }
                 else
                 {
@@ -215,7 +216,16 @@ public class ChessGame extends Application
     
     public void endTurn()
     {
-        
+        this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;        
+        Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
+        try
+        {
+            moveCalculator.calculateMoves(squad);
+        }
+        catch(InterruptedException ie)
+        {
+            ie.printStackTrace();
+        }
     }
     
     public void stop()

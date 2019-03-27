@@ -19,6 +19,9 @@ public class MovesCalculator implements Callable<Set<Position>>
     @Override
     public Set<Position> call() throws Exception 
     {
+        System.out.println("Thread: " + Thread.currentThread().getId() +
+                        " calculating moves for " + this.piece.getName());
+        
         HashSet<Position> moves = new HashSet<>();
         switch (piece.getPiece()) 
         {
@@ -41,6 +44,10 @@ public class MovesCalculator implements Callable<Set<Position>>
                 break;
             case PAWN:
                 moves.addAll(calculatePawnMoves());
+                for(Position p : moves)
+                {
+                    System.out.println(p.toString());
+                }
                 break;
         }
         return moves;
@@ -75,6 +82,11 @@ public class MovesCalculator implements Callable<Set<Position>>
     private Set<Position> calculatePawnMoves()
     {
         HashSet<Position> moves = new HashSet<>();
+        moves.addAll(calculateNorthMoves(piece.getPosition(), true));
+        int x = piece.getPosition().getX();
+        int y = piece.getPosition().getY() + 1;
+        Position position = new Position(x, y);
+        moves.addAll(calculateNorthMoves(position, true));
         return moves;
     }
     

@@ -20,11 +20,6 @@ public class Position
     public Position(int x, int y)
     {
         this((char)(y + 97), x + 1);
-        //this.x = x;
-        //this.y = y;
-        //this.rank = x + 1;
-        //this.file = (char)(y + 97);
-        System.out.printf("x: %d, y: %d, rank: %d, file: %c%n", x, y, rank, file);
     }
 
     /**
@@ -100,5 +95,10 @@ public class Position
     public int hashCode()
     {
         return Objects.hash(rank, file); 
+    }
+    
+    public String toString()
+    {
+        return "Position: rank: " + rank + ", file: " + file;
     }
 }
