@@ -144,14 +144,20 @@ public class ChessGame extends Application
                 // move piece to vacant square
                 if(null == square.getCurrentPiece())
                 {
-                    movePiece(selectedPiece, selectedSquare, square);
+                    if(selectedPiece.isAllowedMove(square.getPosition()))
+                    {
+                        movePiece(selectedPiece, selectedSquare, square);
+                    }
                 }
                 else
                 {
                     // take piece when selected and previous selected are not friendly
-                    if(!selectedPiece.isFriendly(square.getCurrentPiece()))
-                    {
-                        takePiece(selectedPiece, selectedSquare, square);
+                    if(!selectedPiece.isFriendly(square.getCurrentPiece())) 
+                    {        
+                        if(selectedPiece.isAllowedMove(square.getPosition()))
+                        {
+                            takePiece(selectedPiece, selectedSquare, square);
+                        }
                     }
                     else
                     {

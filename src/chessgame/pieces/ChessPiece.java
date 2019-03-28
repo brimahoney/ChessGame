@@ -82,7 +82,7 @@ public class ChessPiece extends ImageView
         return piece.getColor().equals(getColor());
     }
     
-    public Piece getPiece()
+    public Piece getType()
     {
         return piece;
     }
@@ -165,5 +165,10 @@ public class ChessPiece extends ImageView
     public void setAllowedMoves(Set<Position> allowedMoves)
     {
         this.allowedMoves = allowedMoves;
+    }
+    
+    public boolean isAllowedMove(Position position)
+    {
+        return allowedMoves.contains(position);
     }
 }

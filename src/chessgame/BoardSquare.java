@@ -34,9 +34,9 @@ public class BoardSquare extends StackPane
         this.getChildren().add(this.rectangle);
         
         this.highLightCircle = new Circle(widthAndHeight/7, null);
-        this.highLightCircle.setFill(Color.POWDERBLUE);
-        this.highLightCircle.setOpacity(0.0);
-        this.getChildren().add(this.highLightCircle);
+        this.highLightCircle.setFill(Color.CHARTREUSE);
+        this.highLightCircle.setOpacity(0.3);
+        //this.getChildren().add(this.highLightCircle);
         
         this.color = color;
         this.position = position;
@@ -106,8 +106,10 @@ public class BoardSquare extends StackPane
     
     public void highLight(boolean doHighlight)
     {
-        double opacity = doHighlight ? 0.8 : 0.0;
-        this.highLightCircle.setOpacity(opacity);
+        if(doHighlight)
+            this.getChildren().add(highLightCircle);
+        else
+            this.getChildren().remove(highLightCircle);
     }
     
     private EventHandler<DragEvent> getDragEnteredHandler()

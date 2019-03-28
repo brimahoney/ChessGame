@@ -23,7 +23,7 @@ public class MovesCalculator implements Callable<Set<Position>>
           //              " calculating moves for " + this.piece.getName());
         
         HashSet<Position> moves = new HashSet<>();
-        switch (piece.getPiece()) 
+        switch (piece.getType()) 
         {
             case KING:
                 moves.addAll(calculateDiagonalMoves(true));
