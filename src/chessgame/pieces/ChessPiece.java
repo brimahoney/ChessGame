@@ -3,6 +3,7 @@ package chessgame.pieces;
 import chessgame.TeamColor;
 import chessgame.Piece;
 import chessgame.Position;
+import java.util.Set;
 import javafx.event.EventHandler;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -12,10 +13,11 @@ import javafx.scene.transform.Rotate;
 
 public class ChessPiece extends ImageView
 {
-    protected Position position;
-    protected TeamColor color;
+    private Position position;
+    private TeamColor color;
     private boolean isFirstMove = true;
-    
+    private Set<Position> allowedMoves;
+            
     private final Piece piece;
     private final int imageViewWidthAndHeight = 80;
     
@@ -35,7 +37,7 @@ public class ChessPiece extends ImageView
         this.piece = piece;
         
         this.getTransforms().add(
-                new Rotate(90, imageViewWidthAndHeight/2, imageViewWidthAndHeight/2));
+                new Rotate(180, imageViewWidthAndHeight/2, imageViewWidthAndHeight/2));
         this.setFitWidth(80);
         this.setPreserveRatio(true);
         this.setSmooth(true);
@@ -63,6 +65,11 @@ public class ChessPiece extends ImageView
     public boolean isFirstMove()
     {
         return this.isFirstMove;
+    }
+    
+    public void setMoved()
+    {
+        this.isFirstMove = false;
     }
     
     public String getImageName()
@@ -148,5 +155,15 @@ public class ChessPiece extends ImageView
             }
         };
         return dragHandler;
+    }
+
+    public Set<Position> getAllowedMoves()
+    {
+        return allowedMoves;
+    }
+
+    public void setAllowedMoves(Set<Position> allowedMoves)
+    {
+        this.allowedMoves = allowedMoves;
     }
 }

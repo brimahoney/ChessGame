@@ -40,7 +40,7 @@ public class MovesCalculator implements Callable<Set<Position>>
                 moves.addAll(calculateKnightMoves());
                 break;
             case ROOK:
-                moves.addAll(calculateDiagonalMoves(false));
+                moves.addAll(calculatePerpendicularMoves(false));
                 break;
             case PAWN:
                 moves.addAll(calculatePawnMoves());
@@ -86,14 +86,17 @@ public class MovesCalculator implements Callable<Set<Position>>
         else
             moves.addAll(calculateSouthMoves(piece.getPosition(), true));
         
-        int moveDirection = piece.getColor().equals(TeamColor.WHITE) ? 1 : -1;
-        int x = piece.getPosition().getX();
-        int y = piece.getPosition().getY() + moveDirection;
-        Position position = new Position(x, y);
-        if(piece.getColor().equals(TeamColor.WHITE))
-            moves.addAll(calculateNorthMoves(position, true));
-        else
-            moves.addAll(calculateSouthMoves(position, true));
+        if(piece.isFirstMove())
+        {
+            int moveDirection = piece.getColor().equals(TeamColor.WHITE) ? 1 : -1;
+            int x = piece.getPosition().getX();
+            int y = piece.getPosition().getY() + moveDirection;
+            Position position = new Position(x, y);
+            if(piece.getColor().equals(TeamColor.WHITE))
+                moves.addAll(calculateNorthMoves(position, true));
+            else
+                moves.addAll(calculateSouthMoves(position, true));
+        }
         System.out.println("Calculating pawn moves: " + moves.size());
         return moves;
     }

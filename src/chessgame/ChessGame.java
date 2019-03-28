@@ -42,27 +42,21 @@ public class ChessGame extends Application
         createSquares();
         
         whiteSquad = new Squad(TeamColor.WHITE);
+        placePieces(whiteSquad);
         blackSquad = new Squad(TeamColor.BLACK);
-        
-        ChessPiece[] whiteSquadPieces = whiteSquad.getSquad();
-        for(int i = 0; i < whiteSquadPieces.length; i++)
-        {
-            ChessPiece piece = whiteSquadPieces[i];
-            BoardSquare aSquare = squaresMap.get(piece.getPosition());
-            if(null != aSquare)
-                aSquare.setCurrentPiece(piece);
-        }
-        
-        ChessPiece[] blackSquadPieces = blackSquad.getSquad();        
-        for(int i = 0; i < blackSquadPieces.length; i++)
-        {
-            ChessPiece piece = blackSquadPieces[i];
-            BoardSquare aSquare = squaresMap.get(piece.getPosition());
-            if(null != aSquare)
-                aSquare.setCurrentPiece(piece);
-        }
+        placePieces(blackSquad);
         
         moveCalculator = new MoveCalcThreadPool(squares);
+    }
+    
+    private void placePieces(Squad squad)
+    {
+        for (ChessPiece piece : squad.getSquad())
+        {
+            BoardSquare aSquare = squaresMap.get(piece.getPosition());
+            if(null != aSquare)
+                aSquare.setCurrentPiece(piece); 
+        }
     }
     
     @Override
@@ -75,18 +69,19 @@ public class ChessGame extends Application
         {
             for(int j = 0; j < squares[i].length; j++)
             {
-                gridPane.add(squares[i][j], i, j);
+                gridPane.add(squares[i][j], 7 - i, j);
                 //System.out.println(squares[i][j].getCurrentPiece().getImageName());
             }
         }
         gridPane.setBorder(new Border(new BorderStroke(Paint.valueOf("BLACK"), 
             BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
-        gridPane.getTransforms().add(new Rotate(-90, 400, 400));
+        gridPane.getTransforms().add(new Rotate(180, 400, 400));
         Scene scene = new Scene(gridPane, 800, 800);
 
         primaryStage.setTitle("Chess");
         primaryStage.setScene(scene);
         primaryStage.show();
+        startGame();
     }
 
     /**
@@ -110,12 +105,13 @@ public class ChessGame extends Application
             {
                 //Position p = new Position(file++, rank);
                 Position p = new Position(i, j);
-                BoardSquare square = new BoardSquare(decideColor(i, j), p);
+                BoardSquare square = new BoardSquare(decideColor(7 - i, j), p);
                 square.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() 
                     {
                         public void handle(MouseEvent e) 
                         { 
                             processSelection(square);
+                            System.out.println(square.getPosition().toString());
                         }
                     });
                 squares[i][j] = square;
@@ -128,7 +124,10 @@ public class ChessGame extends Application
     {
         // select a square/piece (no previous selection)
         if(null == selectedSquare && square.isOccupied())
-            setSelectedSquare(square, true);
+        {
+            if(square.getCurrentPiece().getColor().equals(turn))
+                setSelectedSquare(square, true);
+        }
         else if(null != selectedSquare)
         {
             // deselect square (same square selected)
@@ -146,13 +145,14 @@ public class ChessGame extends Application
                 if(null == square.getCurrentPiece())
                 {
                     movePiece(selectedPiece, selectedSquare, square);
-                    endTurn();
                 }
                 else
                 {
                     // take piece when selected and previous selected are not friendly
                     if(!selectedPiece.isFriendly(square.getCurrentPiece()))
+                    {
                         takePiece(selectedPiece, selectedSquare, square);
+                    }
                     else
                     {
                         // select another square/piece when previous selection was friendly
@@ -170,6 +170,9 @@ public class ChessGame extends Application
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
         setSelectedSquare(to, false);
+        if(selectedPiece.isFirstMove())
+            selectedPiece.setMoved();
+        endTurn();
     }
     
     private void takePiece(ChessPiece selectedPiece, BoardSquare from, BoardSquare to)
@@ -178,6 +181,9 @@ public class ChessGame extends Application
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
         setSelectedSquare(to, false);
+        if(selectedPiece.isFirstMove())
+            selectedPiece.setMoved();
+        endTurn();
     }
                     
     private void setSelectedSquare(BoardSquare square, boolean selected)
@@ -190,10 +196,23 @@ public class ChessGame extends Application
             if(null != piece)
             {
                 this.selectedPiece = piece;
+                Set<Position> positions = piece.getAllowedMoves();
+                for(Position p : positions)
+                {
+                    this.squaresMap.get(p).highLight(true);
+                }
             }
         }
         else
         {
+            if(null != this.selectedPiece)
+            {
+                Set<Position> positions = selectedPiece.getAllowedMoves();
+                for(Position p : positions)
+                {
+                    this.squaresMap.get(p).highLight(false);
+                }
+            }
             square.setSelected(false);
             this.selectedSquare = null;
             this.selectedPiece = null;
@@ -218,12 +237,23 @@ public class ChessGame extends Application
         }
     }
     
+    public void startGame()
+    {
+        calculateSquadMoves(whiteSquad);
+    }
+    
     public void endTurn()
     {
         this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;        
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
+        calculateSquadMoves(squad);
+    }
+    
+    public void calculateSquadMoves(Squad squad)
+    {
         try
         {
+            // calculate the moves for the side about to take it's turn 
             List<Future<Set<Position>>> responses = moveCalculator.calculateMoves(squad);
             ChessPiece[] pieces = squad.getSquad();
             int index = 0;
@@ -231,20 +261,8 @@ public class ChessGame extends Application
             {
                 try
                 {
-                    while(!response.isDone())
-                    {
-                        try
-                        {
-                            Thread.sleep(10);
-                        }
-                        catch(InterruptedException ie)
-                        {
-                            ie.printStackTrace();
-                        }
-                    }
                     Set<Position> positions = response.get();
-                   // System.out.println(pieces[index].getColor().getColorName() + " " +
-                     //       pieces[index].getName() + " :-----------------------");
+                    pieces[index].setAllowedMoves(positions);
                     index++;
                     for(Position position : positions)
                     {

@@ -6,6 +6,7 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
 
@@ -13,6 +14,7 @@ public class BoardSquare extends StackPane
 {
     int widthAndHeight = 100;
     private final Rectangle rectangle;
+    private final Circle highLightCircle;
     private boolean isSelected = false;
     private boolean isOccupied = false;
     
@@ -30,6 +32,12 @@ public class BoardSquare extends StackPane
         this.rectangle.setStrokeWidth(8);
         this.rectangle.setStrokeType(StrokeType.INSIDE);
         this.getChildren().add(this.rectangle);
+        
+        this.highLightCircle = new Circle(widthAndHeight/7, null);
+        this.highLightCircle.setFill(Color.POWDERBLUE);
+        this.highLightCircle.setOpacity(0.0);
+        this.getChildren().add(this.highLightCircle);
+        
         this.color = color;
         this.position = position;
 
@@ -53,6 +61,11 @@ public class BoardSquare extends StackPane
     {
         if(null != piece)
         {
+            if(null != currentPiece)
+            {
+                this.currentPiece.setIsAlive(false);
+                this.getChildren().remove(currentPiece);
+            }
             piece.setPosition(this.getPosition());
             this.currentPiece = piece;
             this.getChildren().add(piece);
@@ -89,6 +102,12 @@ public class BoardSquare extends StackPane
     public boolean isSelected()
     {
         return this.isSelected;
+    }
+    
+    public void highLight(boolean doHighlight)
+    {
+        double opacity = doHighlight ? 0.8 : 0.0;
+        this.highLightCircle.setOpacity(opacity);
     }
     
     private EventHandler<DragEvent> getDragEnteredHandler()
