@@ -2,7 +2,11 @@ package chessgame;
 
 import chessgame.pieces.ChessPiece;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -220,7 +224,39 @@ public class ChessGame extends Application
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         try
         {
-            moveCalculator.calculateMoves(squad);
+            List<Future<Set<Position>>> responses = moveCalculator.calculateMoves(squad);
+            ChessPiece[] pieces = squad.getSquad();
+            int index = 0;
+            for(Future<Set<Position>> response : responses)
+            {
+                try
+                {
+                    while(!response.isDone())
+                    {
+                        try
+                        {
+                            Thread.sleep(10);
+                        }
+                        catch(InterruptedException ie)
+                        {
+                            ie.printStackTrace();
+                        }
+                    }
+                    Set<Position> positions = response.get();
+                   // System.out.println(pieces[index].getColor().getColorName() + " " +
+                     //       pieces[index].getName() + " :-----------------------");
+                    index++;
+                    for(Position position : positions)
+                    {
+                        //System.out.println(position.toString());
+                    }
+                }
+                catch(ExecutionException ee)
+                {
+                    ee.printStackTrace();
+                }
+                
+            }
         }
         catch(InterruptedException ie)
         {
@@ -228,6 +264,7 @@ public class ChessGame extends Application
         }
     }
     
+    @Override
     public void stop()
     {
         this.moveCalculator.shutDown();

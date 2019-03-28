@@ -28,9 +28,10 @@ public class MoveCalcThreadPool
             { 
                 System.out.println("Shutdown Hook is running !"); 
                 pool.shutdown();
+                
+                System.out.println("Application Terminating ..."); 
             } 
         }); 
-        System.out.println("Application Terminating ..."); 
     }
     
     public void createTasks(Squad squad)

@@ -13,13 +13,13 @@ public class Position
     {
         this.rank = rank;
         this.file = file;
-        this.x = Position.translateRank(rank);
-        this.y = Position.translateFile(file);
+        this.x = Position.translateFile(file);
+        this.y = Position.translateRank(rank);
     }
     
     public Position(int x, int y)
     {
-        this((char)(y + 97), x + 1);
+        this((char)(x + 97), y + 1);
     }
 
     /**
@@ -49,7 +49,7 @@ public class Position
     }
         
     /**
-     * Convert rank into int (x) index
+     * Convert rank into int (y) index
      * @param rank
      * @return 
      */
@@ -59,7 +59,7 @@ public class Position
     }
     
     /**
-     * Convert file into int (y) index
+     * Convert file into int (x) index
      * @param file
      * @return 
      */
@@ -99,6 +99,7 @@ public class Position
     
     public String toString()
     {
-        return "Position: rank: " + rank + ", file: " + file;
+        return "Position: rank - " + rank + ", file - " + file + 
+                "\n\t y - " + y + ", x - " + x;
     }
 }

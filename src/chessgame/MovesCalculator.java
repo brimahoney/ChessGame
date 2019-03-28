@@ -19,8 +19,8 @@ public class MovesCalculator implements Callable<Set<Position>>
     @Override
     public Set<Position> call() throws Exception 
     {
-        System.out.println("Thread: " + Thread.currentThread().getId() +
-                        " calculating moves for " + this.piece.getName());
+        //System.out.println("Thread: " + Thread.currentThread().getId() +
+          //              " calculating moves for " + this.piece.getName());
         
         HashSet<Position> moves = new HashSet<>();
         switch (piece.getPiece()) 
@@ -44,12 +44,11 @@ public class MovesCalculator implements Callable<Set<Position>>
                 break;
             case PAWN:
                 moves.addAll(calculatePawnMoves());
-                for(Position p : moves)
-                {
-                    System.out.println(p.toString());
-                }
                 break;
         }
+        //System.out.println("Thread: " + Thread.currentThread().getId() +
+          //              " moves calc complete for " + this.piece.getName());
+
         return moves;
     }
 
@@ -82,11 +81,20 @@ public class MovesCalculator implements Callable<Set<Position>>
     private Set<Position> calculatePawnMoves()
     {
         HashSet<Position> moves = new HashSet<>();
-        moves.addAll(calculateNorthMoves(piece.getPosition(), true));
+        if(piece.getColor().equals(TeamColor.WHITE))
+            moves.addAll(calculateNorthMoves(piece.getPosition(), true));
+        else
+            moves.addAll(calculateSouthMoves(piece.getPosition(), true));
+        
+        int moveDirection = piece.getColor().equals(TeamColor.WHITE) ? 1 : -1;
         int x = piece.getPosition().getX();
-        int y = piece.getPosition().getY() + 1;
+        int y = piece.getPosition().getY() + moveDirection;
         Position position = new Position(x, y);
-        moves.addAll(calculateNorthMoves(position, true));
+        if(piece.getColor().equals(TeamColor.WHITE))
+            moves.addAll(calculateNorthMoves(position, true));
+        else
+            moves.addAll(calculateSouthMoves(position, true));
+        System.out.println("Calculating pawn moves: " + moves.size());
         return moves;
     }
     
