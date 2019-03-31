@@ -2,6 +2,8 @@ package chessgame;
 
 import chessgame.pieces.ChessPiece;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.input.DragEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -9,6 +11,10 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.transform.Rotate;
 
 public class BoardSquare extends StackPane
 {
@@ -45,6 +51,16 @@ public class BoardSquare extends StackPane
         
         this.setOnDragEntered(getDragEnteredHandler());
         this.setOnDragExited(getDragExitedHandler());
+        
+        /*Text positionText = new Text(this.position.getX() + "," + this.position.getY());
+        positionText.setFont(Font.font("Verdana", FontWeight.BOLD, 11));
+        positionText.setStroke(Color.web("#7080A0")); 
+        positionText.getTransforms().add(
+                new Rotate(180, 50, 50));
+        this.getChildren().add(positionText);
+        this.setAlignment(Pos.BOTTOM_LEFT);
+        StackPane.setMargin(positionText, new Insets(0, 10, 0, 0));
+        */
     }
     
     public Position getPosition()
