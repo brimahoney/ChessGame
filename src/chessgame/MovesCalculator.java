@@ -81,10 +81,38 @@ public class MovesCalculator implements Callable<Set<Position>>
     private Set<Position> calculatePawnMoves()
     {
         HashSet<Position> moves = new HashSet<>();
+        Position pawnPosition = piece.getPosition();
+        
         if(piece.getColor().equals(TeamColor.WHITE))
-            moves.addAll(calculateNorthMoves(piece.getPosition(), true));
+        {
+            // add space in front of the pawn
+            moves.addAll(calculateNorthMoves(pawnPosition, true));
+            
+            int x = pawnPosition.getX();
+            int y = pawnPosition.getY();
+            
+            BoardSquare theSquare = board[x][y];
+            
+            if(theSquare.isOccupied())
+            {
+                if(theSquare.getCurrentPiece().isFriendly(this.piece))
+                return moves;
+            }
+            else
+            {
+                moves.add(pawnPosition);
+                return moves;
+            }
+
+            moves.addAll(calculateNorthEastMoves(piece.getPosition(), true));
+            moves.addAll(calculateNorthWestMoves(piece.getPosition(), true));
+        }
         else
+        {
             moves.addAll(calculateSouthMoves(piece.getPosition(), true));
+            moves.addAll(calculateSouthEastMoves(piece.getPosition(), true));
+            moves.addAll(calculateSouthWestMoves(piece.getPosition(), true));
+        }
         
         if(piece.isFirstMove())
         {
