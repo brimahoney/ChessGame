@@ -53,7 +53,7 @@ public class ControlsPane extends StackPane
         radioBox.setPadding(new Insets(0, 12, 0, 12));
         //radioBox.setSpacing(10);
         
-        controlsBox.getChildren().addAll(startButton, radioBox);
+        controlsBox.getChildren().addAll(radioBox, startButton);
         this.getChildren().addAll(controlsBox);
     }
 }
