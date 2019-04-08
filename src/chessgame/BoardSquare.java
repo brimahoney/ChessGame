@@ -89,6 +89,10 @@ public class BoardSquare extends StackPane
         }
         else
         {
+            if(null != currentPiece)
+            {
+                this.getChildren().remove(currentPiece);
+            }
             this.currentPiece = null;
             isOccupied = false;
         }                   
@@ -154,5 +158,11 @@ public class BoardSquare extends StackPane
             event.consume();
         };
         return eventHandler;
+    }
+    
+    public void clearSquare()
+    {
+        setCurrentPiece(null);
+        setSelected(false);
     }
 }

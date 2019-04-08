@@ -2,6 +2,8 @@ package chessgame;
 
 
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -21,9 +23,11 @@ public class ControlsPane extends StackPane
     private final ToggleGroup colorSelectGroup;
     private final RadioButton blackSelectRadio;
     private final RadioButton whiteSelectRadio;
+    private final ChessBoard board;
     
-    public ControlsPane()
+    public ControlsPane(ChessBoard board)
     {
+        this.board = board;
         controlsBox = new HBox();
         controlsBox.setPadding(new Insets(15, 12, 20, 12));
         controlsBox.setSpacing(10);
@@ -33,6 +37,14 @@ public class ControlsPane extends StackPane
         startButton.setPrefSize(100, 20);
         startButton.setFont(Font.font(Font.getDefault().getName(), FontWeight.BOLD, USE_PREF_SIZE));
         startButton.setTextFill(Color.RED);
+        startButton.setOnAction(new EventHandler<ActionEvent>()
+        {
+            @Override
+            public void handle(ActionEvent event)
+            {
+                board.startNewGame();
+            }
+        });
 
         playAsLabel = new Label("Play as:");
         playAsLabel.setPrefSize(50, 20);

@@ -25,8 +25,8 @@ public class ChessBoard extends GridPane
     
     private TeamColor turn = TeamColor.WHITE;
 
-    private final Squad whiteSquad;
-    private final Squad blackSquad;
+    private Squad whiteSquad;
+    private Squad blackSquad;
     private final MoveCalcThreadPool moveCalculator;
     
     public ChessBoard()
@@ -216,6 +216,16 @@ public class ChessBoard extends GridPane
         calculateSquadMoves(squad);
     }
     
+    public void startNewGame()
+    {
+        clearBoard();
+        whiteSquad = new Squad(TeamColor.WHITE);
+        placePieces(whiteSquad);
+        blackSquad = new Squad(TeamColor.BLACK);
+        placePieces(blackSquad);
+        startGame(TeamColor.WHITE);
+    }
+    
     public void endTurn()
     {
         this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;        
@@ -252,7 +262,15 @@ public class ChessBoard extends GridPane
         }
     }
     
-    public void shutdownMovesCaclulator()
+    private void clearBoard()
+    {
+        for(BoardSquare square : squaresMap.values())
+        {
+            square.clearSquare();
+        }
+    }
+    
+    public void shutdownMovesCalculator()
     {
         System.out.println("Shutting down moves calculator... ");
         this.moveCalculator.shutDown();

@@ -16,7 +16,7 @@ public class ChessGame extends Application
     public ChessGame()
     {
         chessBoard = new ChessBoard();
-        controlsPane = new ControlsPane();
+        controlsPane = new ControlsPane(chessBoard);
         mainLayout = new BorderPane();
         //gridPane.setPadding(new Insets(10, 10, 10, 10));
         //gridPane.setAlignment(Pos.CENTER); 
@@ -50,6 +50,6 @@ public class ChessGame extends Application
     @Override
     public void stop()
     {
-        chessBoard.shutdownMovesCaclulator();
+        chessBoard.shutdownMovesCalculator();
     }
 }
