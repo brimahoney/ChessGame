@@ -79,14 +79,14 @@ public class MovesCalculator implements Callable<Set<Position>>
         int y = piece.getPosition().getY();
         
         
-        moves.add(new Position(x - 2, x - 1));
-        moves.add(new Position(x - 2, x + 1));
-        moves.add(new Position(x + 2, x - 1));
-        moves.add(new Position(x + 2, x + 1));
-        moves.add(new Position(x - 1, x - 2));
-        moves.add(new Position(x - 1, x + 2));
-        moves.add(new Position(x + 1, x - 2));
-        moves.add(new Position(x + 1, x + 2));
+        moves.add(new Position(x - 2, y - 1));
+        moves.add(new Position(x - 2, y + 1));
+        moves.add(new Position(x + 2, y - 1));
+        moves.add(new Position(x + 2, y + 1));
+        moves.add(new Position(x - 1, y - 2));
+        moves.add(new Position(x - 1, y + 2));
+        moves.add(new Position(x + 1, y - 2));
+        moves.add(new Position(x + 1, y + 2));
 
         //remove from the moves if not a valid position or 
         // if the square is occupied and the occupier is friendly
