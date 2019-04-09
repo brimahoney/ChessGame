@@ -97,7 +97,7 @@ public class ChessPiece extends ImageView
         return piece.getStrength();
     }
     
-    public boolean isIsAlive() 
+    public boolean isAlive() 
     {
         return isAlive;
     }

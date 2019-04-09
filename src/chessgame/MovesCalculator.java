@@ -21,6 +21,11 @@ public class MovesCalculator implements Callable<Set<Position>>
     public Set<Position> call() throws Exception 
     {
         HashSet<Position> moves = new HashSet<>();
+        
+        // return immediately if piece is not active
+        if(!this.piece.isAlive())
+            return Collections.EMPTY_SET;
+        
         switch (piece.getType()) 
         {
             case KING:
@@ -70,6 +75,34 @@ public class MovesCalculator implements Callable<Set<Position>>
     private Set<Position> calculateKnightMoves()
     {
         HashSet<Position> moves = new HashSet<>();
+        int x = piece.getPosition().getX();
+        int y = piece.getPosition().getY();
+        
+        
+        moves.add(new Position(x - 2, x - 1));
+        moves.add(new Position(x - 2, x + 1));
+        moves.add(new Position(x + 2, x - 1));
+        moves.add(new Position(x + 2, x + 1));
+        moves.add(new Position(x - 1, x - 2));
+        moves.add(new Position(x - 1, x + 2));
+        moves.add(new Position(x + 1, x - 2));
+        moves.add(new Position(x + 1, x + 2));
+
+        //remove from the moves if not a valid position or 
+        // if the square is occupied and the occupier is friendly
+        moves.removeIf((Position move) -> 
+        {
+            if(!isValidPosition(move))
+            {
+                return false;
+            }
+            else
+            {
+                BoardSquare theSquare = board[move.getX()][move.getY()];
+                return theSquare.isOccupied() && theSquare.getCurrentPiece().isFriendly(this.piece);
+            }
+        });
+       
         return moves;
     }
     
@@ -125,7 +158,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX() - 1;
         int y = p.getY() + 1;        
                 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
         {
             return Collections.EMPTY_SET;
@@ -144,7 +177,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX() - 1;
         int y = p.getY() - 1;        
 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
         {
             return Collections.EMPTY_SET;
@@ -163,7 +196,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX() + 1;
         int y = p.getY() + 1;        
 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
         {
             return Collections.EMPTY_SET;
@@ -182,7 +215,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX() + 1;
         int y = p.getY() - 1;        
 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
         {
             return Collections.EMPTY_SET;
@@ -201,7 +234,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX();
         int y = p.getY() + 1;        
                 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (board[x][y].isOccupied() && this.piece.getType().equals(Piece.PAWN)))
         {
             return Collections.EMPTY_SET;
@@ -220,7 +253,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = p.getX();
         int y = p.getY() - 1;        
                 
-        if((x < 0 || x > 7 || y < 0 || y > 7) ||
+        if(!isValidPosition(x, y) ||
                 (board[x][y].isOccupied() && this.piece.getType().equals(Piece.PAWN)))
         {
             return Collections.EMPTY_SET;
@@ -252,7 +285,7 @@ public class MovesCalculator implements Callable<Set<Position>>
         Position position = new Position(x, y);
         HashSet<Position> moves = new HashSet<>();
         
-        if(x < 0 || x > 7 || y < 0 || y > 7)
+        if(!isValidPosition(x, y))
             return moves;
         
         BoardSquare theSquare = board[x][y];
@@ -275,5 +308,15 @@ public class MovesCalculator implements Callable<Set<Position>>
             moves.addAll(calculateMoves(position, xFactor, yFactor, limited));
         
         return moves;        
+    }
+    
+    public static boolean isValidPosition(int x, int y)
+    {
+        return !(x < 0 || x > 7 || y < 0 || y > 7);
+    }
+
+    public static boolean isValidPosition(Position p)
+    {
+        return isValidPosition(p.getX(), p.getY());
     }
 }
