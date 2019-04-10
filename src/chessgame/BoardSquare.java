@@ -164,5 +164,6 @@ public class BoardSquare extends StackPane
     {
         setCurrentPiece(null);
         setSelected(false);
+        highLight(false);
     }
 }

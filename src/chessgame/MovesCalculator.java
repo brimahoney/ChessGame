@@ -78,7 +78,6 @@ public class MovesCalculator implements Callable<Set<Position>>
         int x = piece.getPosition().getX();
         int y = piece.getPosition().getY();
         
-        
         moves.add(new Position(x - 2, y - 1));
         moves.add(new Position(x - 2, y + 1));
         moves.add(new Position(x + 2, y - 1));
@@ -88,13 +87,14 @@ public class MovesCalculator implements Callable<Set<Position>>
         moves.add(new Position(x + 1, y - 2));
         moves.add(new Position(x + 1, y + 2));
 
+        
         //remove from the moves if not a valid position or 
         // if the square is occupied and the occupier is friendly
         moves.removeIf((Position move) -> 
         {
             if(!isValidPosition(move))
             {
-                return false;
+                return true;
             }
             else
             {
@@ -110,19 +110,24 @@ public class MovesCalculator implements Callable<Set<Position>>
     {
         HashSet<Position> moves = new HashSet<>();
         Position position = piece.getPosition();
+        boolean wasNorthMove = false;
+        boolean wasSouthMove = false;
         
         // if white, can only move North
         if(piece.getColor().equals(TeamColor.WHITE))
         {
-            // add space in front of the pawn
-            moves.addAll(calculateNorthMoves(position, true));
+            Set<Position> northMoves = calculateNorthMoves(position, true);
+            wasNorthMove = !northMoves.isEmpty();
+            moves.addAll(northMoves);
             moves.addAll(calculateNorthEastMoves(piece.getPosition(), true));
             moves.addAll(calculateNorthWestMoves(piece.getPosition(), true));
         }
         // else if black, can only move south 
         else
         {
-            moves.addAll(calculateSouthMoves(piece.getPosition(), true));
+            Set<Position> southMoves = calculateSouthMoves(position, true);
+            wasSouthMove = !southMoves.isEmpty();
+            moves.addAll(southMoves);
             moves.addAll(calculateSouthEastMoves(piece.getPosition(), true));
             moves.addAll(calculateSouthWestMoves(piece.getPosition(), true));
         }
@@ -135,14 +140,26 @@ public class MovesCalculator implements Callable<Set<Position>>
             int y = position.getY() + moveDirection;
             Position newPosition = new Position(x, y);
             if(piece.getColor().equals(TeamColor.WHITE))
-                moves.addAll(calculateNorthMoves(newPosition, true));
+            {
+                if(wasNorthMove)
+                    moves.addAll(calculateNorthMoves(newPosition, true));
+            }
             else
-                moves.addAll(calculateSouthMoves(newPosition, true));
+            {
+                if(wasSouthMove)
+                    moves.addAll(calculateSouthMoves(newPosition, true));
+            }
         }
         return moves;
     }
     
     private Set<Position> calculateCastlingMove()
+    {
+        HashSet<Position> moves = new HashSet<>();
+        return moves;
+    }
+    
+    private Set<Position> calculateEnPassantMove()
     {
         HashSet<Position> moves = new HashSet<>();
         return moves;
@@ -155,6 +172,8 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthWestMoves(Position p, boolean limited)
     {
+        int xFactor = -1;
+        int yFactor = 1;
         int x = p.getX() - 1;
         int y = p.getY() + 1;        
                 
@@ -167,6 +186,11 @@ public class MovesCalculator implements Callable<Set<Position>>
             return calculateMoves(p, -1, 1, limited);
     }
 
+    //private Set<Position> calculateMovesWithPawnCheck(Position p, int xFactor, int yFactor, boolean )
+    //{
+        
+    //}
+        
     /**
      * x - 1, y - 1
      * Returns empty set if the moving piece is a pawn and the square diagonal
@@ -174,6 +198,8 @@ public class MovesCalculator implements Callable<Set<Position>>
      */    
     private Set<Position> calculateSouthWestMoves(Position p, boolean limited)
     {
+        int xFactor = -1;
+        int yFactor = -1;
         int x = p.getX() - 1;
         int y = p.getY() - 1;        
 
@@ -193,6 +219,8 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthEastMoves(Position p, boolean limited)
     {
+        int xFactor = 1;
+        int yFactor = 1;
         int x = p.getX() + 1;
         int y = p.getY() + 1;        
 
@@ -212,6 +240,8 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateSouthEastMoves(Position p, boolean limited)
     {
+        int xFactor = 1;
+        int yFactor = -1;
         int x = p.getX() + 1;
         int y = p.getY() - 1;        
 
@@ -231,11 +261,13 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthMoves(Position p, boolean limited)
     {
+        int xFactor = 0;
+        int yFactor = 1;
         int x = p.getX();
         int y = p.getY() + 1;        
                 
         if(!isValidPosition(x, y) ||
-                (board[x][y].isOccupied() && this.piece.getType().equals(Piece.PAWN)))
+                (this.piece.getType().equals(Piece.PAWN) && board[x][y].isOccupied()))
         {
             return Collections.EMPTY_SET;
         }
@@ -250,11 +282,13 @@ public class MovesCalculator implements Callable<Set<Position>>
      */    
     private Set<Position> calculateSouthMoves(Position p, boolean limited)
     {
+        int xFactor = 0;
+        int yFactor = -1;
         int x = p.getX();
         int y = p.getY() - 1;        
                 
         if(!isValidPosition(x, y) ||
-                (board[x][y].isOccupied() && this.piece.getType().equals(Piece.PAWN)))
+                (this.piece.getType().equals(Piece.PAWN) && board[x][y].isOccupied()))
         {
             return Collections.EMPTY_SET;
         }
