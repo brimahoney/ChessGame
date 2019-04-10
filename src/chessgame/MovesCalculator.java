@@ -172,8 +172,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthWestMoves(Position p, boolean limited)
     {
-        int xFactor = -1;
-        int yFactor = 1;
         int x = p.getX() - 1;
         int y = p.getY() + 1;        
                 
@@ -198,8 +196,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */    
     private Set<Position> calculateSouthWestMoves(Position p, boolean limited)
     {
-        int xFactor = -1;
-        int yFactor = -1;
         int x = p.getX() - 1;
         int y = p.getY() - 1;        
 
@@ -219,8 +215,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthEastMoves(Position p, boolean limited)
     {
-        int xFactor = 1;
-        int yFactor = 1;
         int x = p.getX() + 1;
         int y = p.getY() + 1;        
 
@@ -240,8 +234,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateSouthEastMoves(Position p, boolean limited)
     {
-        int xFactor = 1;
-        int yFactor = -1;
         int x = p.getX() + 1;
         int y = p.getY() - 1;        
 
@@ -261,8 +253,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateNorthMoves(Position p, boolean limited)
     {
-        int xFactor = 0;
-        int yFactor = 1;
         int x = p.getX();
         int y = p.getY() + 1;        
                 
@@ -282,8 +272,6 @@ public class MovesCalculator implements Callable<Set<Position>>
      */    
     private Set<Position> calculateSouthMoves(Position p, boolean limited)
     {
-        int xFactor = 0;
-        int yFactor = -1;
         int x = p.getX();
         int y = p.getY() - 1;        
                 
