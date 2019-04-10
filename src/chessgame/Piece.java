@@ -1,6 +1,8 @@
 package chessgame;
 
-public enum Piece
+import java.io.Serializable;
+
+public enum Piece implements Serializable
 {
     PAWN ("Pawn", 1),
     KNIGHT ("Knight", 3.5),

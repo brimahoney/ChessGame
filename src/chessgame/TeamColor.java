@@ -1,6 +1,8 @@
 package chessgame;
 
-public enum TeamColor
+import java.io.Serializable;
+
+public enum TeamColor implements Serializable
 {
     BLACK("Black"), WHITE("White");
     

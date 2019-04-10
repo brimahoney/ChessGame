@@ -1,8 +1,9 @@
 package chessgame;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Position
+public class Position implements Serializable
 {
     private final int rank;
     private final char file;

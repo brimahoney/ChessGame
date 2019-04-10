@@ -35,7 +35,7 @@ public class BoardSquare extends StackPane
         
         this.highLightCircle = new Circle(widthAndHeight/7, null);
         this.highLightCircle.setFill(Color.CHARTREUSE);
-        this.highLightCircle.setOpacity(0.3);
+        this.highLightCircle.setOpacity(0.6);
         //this.getChildren().add(this.highLightCircle);
         
         this.color = color;
