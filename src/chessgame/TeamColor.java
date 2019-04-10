@@ -4,7 +4,7 @@ public enum TeamColor
 {
     BLACK("Black"), WHITE("White");
     
-    private String name;
+    private final String name;
     
     TeamColor(String name)
     {

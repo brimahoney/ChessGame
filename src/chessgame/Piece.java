@@ -9,8 +9,8 @@ public enum Piece
     QUEEN ("Queen", 9),
     KING ("King", 1000);
     
-    private String name;
-    private double strength;
+    private final String name;
+    private final double strength;
     
     Piece(String name, double strength)
     {

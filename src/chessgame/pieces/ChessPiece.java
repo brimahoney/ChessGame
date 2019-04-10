@@ -14,7 +14,7 @@ import javafx.scene.transform.Rotate;
 public class ChessPiece extends ImageView
 {
     private Position position;
-    private TeamColor color;
+    private final TeamColor color;
     private boolean isFirstMove = true;
     private Set<Position> allowedMoves;
             
