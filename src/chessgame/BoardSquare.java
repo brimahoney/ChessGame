@@ -41,8 +41,6 @@ public class BoardSquare extends StackPane
         this.color = color;
         this.position = position;
 
-        //this.getChildren().add(this.imageView);
-        
         this.setOnDragEntered(getDragEnteredHandler());
         this.setOnDragExited(getDragExitedHandler());
         
@@ -134,6 +132,7 @@ public class BoardSquare extends StackPane
             /* show to the user that it is an actual gesture target */ 
             if (event.getGestureSource() != BoardSquare.this)
             {
+                System.out.println(event.getGestureSource().toString());
                 BoardSquare.this.rectangle.setStroke(Color.RED);
             }
             
@@ -146,6 +145,7 @@ public class BoardSquare extends StackPane
     {
         EventHandler<DragEvent> eventHandler = (DragEvent event) -> 
         {
+            System.out.println(event.getGestureSource().toString());
             /* mouse moved away, remove the graphical cues */
             BoardSquare.this.rectangle.setStroke(null);
             
