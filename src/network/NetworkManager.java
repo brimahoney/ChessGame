@@ -14,6 +14,10 @@ import java.util.Properties;
 
 public class NetworkManager
 {
+    private int localPort;
+    private int connectToPort;
+    private String hostName;
+    
     public NetworkManager()
     {
         Properties properties = new Properties();
@@ -27,7 +31,7 @@ public class NetworkManager
             ioe.printStackTrace();
         }
         
-        int localPort = Integer.valueOf(properties.getProperty("localPort"));
+        localPort = Integer.valueOf(properties.getProperty("localPort"));
         System.out.println("Local port: " + localPort); 
     }
     
@@ -53,10 +57,11 @@ public class NetworkManager
                 + portNumber + " or listening for a connection");
             System.out.println(e.getMessage());
         }
+        */
         
-        
-        String hostName = args[0];
-        int portNumber = Integer.parseInt(args[1]);
+        /*
+        String hostName = ;
+        int portNumber = ;
  
         try (
                 Socket echoSocket = new Socket(hostName, portNumber);
