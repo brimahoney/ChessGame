@@ -2,10 +2,6 @@ package chessgame;
 
 import java.io.Serializable;
 
-/**
- *
- * @author brian.mahoney
- */
 public class ChessMove implements Serializable
 {
     private final Position fromPosition;

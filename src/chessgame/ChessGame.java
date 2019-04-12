@@ -6,12 +6,14 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import network.NetworkManager;
 
 public class ChessGame extends Application
 {
     private final ChessBoard chessBoard;
     private final ControlsPane controlsPane;
     private final BorderPane mainLayout;
+    private final NetworkManager networkManager;
     
     public ChessGame()
     {
@@ -23,6 +25,8 @@ public class ChessGame extends Application
         //gridPane.setBorder(new Border(new BorderStroke(Paint.valueOf("BLACK"), 
           //  BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
         //gridPane.getTransforms().add(new Rotate(180, 400, 400));
+        
+        networkManager = new NetworkManager();
     }
     
     @Override
