@@ -2,7 +2,15 @@ package network;
 
 import java.io.Serializable;
 
-public class ChessMessage implements Serializable
+public abstract class ChessMessage implements Serializable
 {
-    private MessageType messageType;
+    private final MessageType messageType;
+    
+    public ChessMessage(MessageType type)
+    {
+        this.messageType = type;
+    }
+    
+    public abstract void setPayload(Object payload) throws IllegalArgumentException;
+    public abstract Object getPayload();
 }

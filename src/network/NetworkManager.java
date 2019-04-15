@@ -1,5 +1,9 @@
 package network;
 
+import chessgame.ChessMove;
+import chessgame.Piece;
+import chessgame.Position;
+import chessgame.TeamColor;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -16,7 +20,12 @@ public class NetworkManager
 {
     private int localPort;
     private int connectToPort;
-    private String hostName;
+    private String hostIP;
+    
+    private ServerSocket serverSocket;
+    private Socket clientSocket;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
     
     public NetworkManager()
     {
@@ -35,30 +44,53 @@ public class NetworkManager
         System.out.println("Local port: " + localPort); 
     }
     
-    /*System.out.println("Starting server at port: " + portNumber); 
-        try (
-                ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[0]));
-                Socket clientSocket = serverSocket.accept();     
-                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            )
+    public void startListeningForRequests()
+    {
+        System.out.println("Starting server at port: " + localPort); 
+        
+        try 
         {
-            String inputLine;
-            System.err.println("Server ready!  Waiting for requests...");
-            while ((inputLine = in.readLine()) != null) 
+            serverSocket = new ServerSocket(localPort);
+            clientSocket = serverSocket.accept();
+            
+            hostIP = clientSocket.getInetAddress().getHostAddress();
+            connectToPort = clientSocket.getPort();
+            
+            out = new ObjectOutputStream(clientSocket.getOutputStream());
+            in = new ObjectInputStream(clientSocket.getInputStream());
+            
+            Object inComingMessage;
+
+            while ((inComingMessage = in.readObject()) != null) 
             {
                 System.out.println("Client request recieved, sending back a move");
-                out.writeObject(new ChessMove("White", "Queen", 3, 'e', 7, 'a'));
+                out.writeObject(new ChessMessage(MessageType.GAME_REQUEST) {
+                    @Override
+                    public void setPayload(Object payload) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                    
+                    @Override
+                    public Object getPayload() {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                }
+                //out.writeObject(new ChessMove(new Position('a', 7), new Position('e', 4), TeamColor.BLACK, Piece.QUEEN));
             }
         } 
+        catch(ClassNotFoundException cnfe)
+        {
+            System.out.println("Exception caught when trying to listen on port "
+                + localPort);
+            System.out.println(cnfe.getMessage());
+        }
         catch (IOException e) 
         {
             System.out.println("Exception caught when trying to listen on port "
-                + portNumber + " or listening for a connection");
+                + localPort + " or listening for a connection");
             System.out.println(e.getMessage());
         }
-        */
-        
+    }    
         /*
         String hostName = ;
         int portNumber = ;
