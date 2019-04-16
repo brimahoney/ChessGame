@@ -9,10 +9,10 @@ import network.messageProcesors.MessageProcessorRunnable;
 
 public class ThreadPoolServer implements Runnable{
 
-    protected int serverPort   = 8080;
+    protected int serverPort = 8080;
     protected ServerSocket serverSocket = null;
-    protected boolean isStopped    = false;
-    protected Thread runningThread= null;
+    protected boolean isStopped = false;
+    
     protected ExecutorService threadPool = Executors.newFixedThreadPool(10);
 
     public ThreadPoolServer(int port)
@@ -22,14 +22,9 @@ public class ThreadPoolServer implements Runnable{
 
     public void run()
     {
-        synchronized(this)
-        {
-            this.runningThread = Thread.currentThread();
-        }
-        
         openServerSocket();
         
-        while(! isStopped())
+        while(!isStopped())
         {
             Socket clientSocket = null;
             
@@ -44,8 +39,7 @@ public class ThreadPoolServer implements Runnable{
                     System.out.println("Server Stopped.") ;
                     break;
                 }
-                throw new RuntimeException(
-                    "Error accepting client connection", e);
+                throw new RuntimeException("Error accepting client connection", e);
             }
             
             //this.threadPool.execute(new MessageProcessorRunnable(clientSocket));
@@ -82,7 +76,7 @@ public class ThreadPoolServer implements Runnable{
         }
         catch (IOException e) 
         {
-            throw new RuntimeException("Cannot open port 8080", e);
+            throw new RuntimeException("Cannot open port " + this.serverPort, e);
         }
     }
 }
