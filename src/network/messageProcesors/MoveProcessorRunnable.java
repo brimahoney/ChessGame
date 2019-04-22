@@ -18,7 +18,7 @@ public class MoveProcessorRunnable extends MessageProcessorRunnable
             OutputStream output = clientSocket.getOutputStream();
 
             output.close();
-            System.out.println("Heartbeat Request processed");
+            System.out.println("Move Message processed");
         }
         catch (IOException e) 
         {
