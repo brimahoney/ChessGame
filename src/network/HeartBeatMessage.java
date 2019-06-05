@@ -20,5 +20,4 @@ public class HeartBeatMessage extends ChessMessage
     {
         return this.payload;
     }
-    
 }

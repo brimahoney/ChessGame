@@ -18,80 +18,68 @@ import java.util.Properties;
 
 public class NetworkManager
 {
+
     private int localPort;
     private int connectToPort;
     private String hostIP;
-    
+
     private ServerSocket serverSocket;
     private Socket clientSocket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
-    
+
     public NetworkManager()
     {
         Properties properties = new Properties();
         try
-        {   
+        {
             FileReader reader = new FileReader("src/chessgame/ChessGame.properties");
             properties.load(reader);
-        }
-        catch(IOException ioe)
+        } catch (IOException ioe)
         {
             ioe.printStackTrace();
         }
-        
+
         localPort = Integer.valueOf(properties.getProperty("localPort"));
-        System.out.println("Local port: " + localPort); 
+        System.out.println("Local port: " + localPort);
     }
-    
+
     public void startListeningForRequests()
     {
-        System.out.println("Starting server at port: " + localPort); 
-        
-        try 
+        System.out.println("Starting server at port: " + localPort);
+
+        try
         {
             serverSocket = new ServerSocket(localPort);
             clientSocket = serverSocket.accept();
-            
+
             hostIP = clientSocket.getInetAddress().getHostAddress();
             connectToPort = clientSocket.getPort();
-            
+
             out = new ObjectOutputStream(clientSocket.getOutputStream());
             in = new ObjectInputStream(clientSocket.getInputStream());
-            
+
             Object inComingMessage;
 
-            while ((inComingMessage = in.readObject()) != null) 
+            while ((inComingMessage = in.readObject()) != null)
             {
                 System.out.println("Client request recieved, sending back a move");
-                out.writeObject(new ChessMessage(MessageType.GAME_REQUEST) {
-                    @Override
-                    public void setPayload(Object payload) {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                    
-                    @Override
-                    public Object getPayload() {
-                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-                    }
-                }
+                out.writeObject(new MoveMessage());
                 //out.writeObject(new ChessMove(new Position('a', 7), new Position('e', 4), TeamColor.BLACK, Piece.QUEEN));
             }
-        } 
-        catch(ClassNotFoundException cnfe)
+        } catch (ClassNotFoundException cnfe)
         {
             System.out.println("Exception caught when trying to listen on port "
-                + localPort);
+                    + localPort);
             System.out.println(cnfe.getMessage());
-        }
-        catch (IOException e) 
+        } catch (IOException e)
         {
             System.out.println("Exception caught when trying to listen on port "
-                + localPort + " or listening for a connection");
+                    + localPort + " or listening for a connection");
             System.out.println(e.getMessage());
         }
-    }    
-        /*
+    }
+    /*
         String hostName = ;
         int portNumber = ;
  
@@ -124,5 +112,5 @@ public class NetworkManager
             System.err.println("Class Not Found: " + cnfe.getMessage());
             System.exit(1);
         }
-    */
+     */
 }
