@@ -17,13 +17,33 @@ public class ChessMove implements Serializable
         this.piece = piece;
     }
     
+    public Position getFromPosition()
+    {
+        return fromPosition;
+    }
+
+    public Position getToPosition()
+    {
+        return toPosition;
+    }
+
+    public TeamColor getTeam()
+    {
+        return team;
+    }
+
+    public Piece getPiece()
+    {
+        return piece;
+    }
+
     public String toString()
     {
         StringBuilder builder = new StringBuilder("Chess Move - \n");
-        builder.append("Team: " + team.getColorName() + "\n");
-        builder.append("Piece: " + piece.getName() + "\n");
-        builder.append("From - " + fromPosition.toString() + "\n");
-        builder.append("To  - " + toPosition.toString() + "\n");
+        builder.append("Team: " + getTeam().getColorName() + "\n");
+        builder.append("Piece: " + getPiece().getName() + "\n");
+        builder.append("From - " + getFromPosition().toString() + "\n");
+        builder.append("To  - " + getToPosition().toString() + "\n");
         return builder.toString();
     }
 }

@@ -35,7 +35,7 @@ public class ChessBoard extends GridPane
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
         
-        moveCalculator = new MoveCalcThreadPool(squares);
+        moveCalculator = new MoveCalcThreadPool(squares, whiteSquad, blackSquad);
         
         for(int i = 0; i < squares.length; i++)
         {

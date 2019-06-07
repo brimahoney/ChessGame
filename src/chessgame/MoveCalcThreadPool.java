@@ -11,11 +11,11 @@ import java.util.concurrent.Future;
 public class MoveCalcThreadPool
 {
     private final ExecutorService pool;
-    private BoardSquare[][] board;
+    private final BoardSquare[][] board;
     private List<MovesCalculator> blackTeamTasks = new ArrayList<>();
     private List<MovesCalculator> whiteTeamTasks = new ArrayList<>();
                 
-    public MoveCalcThreadPool(BoardSquare[][] board) 
+    public MoveCalcThreadPool(BoardSquare[][] board, Squad whiteSquad, Squad blackSquad) 
     {
         this.board = board;
         
@@ -31,7 +31,9 @@ public class MoveCalcThreadPool
                 
                 System.out.println("Application Terminating ..."); 
             } 
-        }); 
+        });
+        createTasks(whiteSquad);
+        createTasks(blackSquad);         
     }
     
     public void createTasks(Squad squad)
@@ -53,13 +55,7 @@ public class MoveCalcThreadPool
     
     public List<Future<Set<Position>>> calculateMoves(Squad squad) throws InterruptedException
     {
-        createTasks(squad);
-        List<MovesCalculator> tasks;
-        if(squad.getColor().equals(TeamColor.BLACK))
-            tasks = blackTeamTasks;
-        else
-            tasks = whiteTeamTasks;
-        
+        List<MovesCalculator> tasks = squad.getColor().equals(TeamColor.BLACK) ? blackTeamTasks : whiteTeamTasks;
         return this.pool.invokeAll(tasks);
     }
 
