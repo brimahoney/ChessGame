@@ -1,10 +1,12 @@
 package chessgame;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
+
 import chessgame.pieces.ChessPiece;
-import java.util.Collections;
+import chessgame.pieces.Piece;
 
 public class MovesCalculator implements Callable<Set<Position>>
 {

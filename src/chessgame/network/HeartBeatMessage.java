@@ -1,4 +1,4 @@
-package network;
+package chessgame.network;
 
 public class HeartBeatMessage extends ChessMessage
 {

@@ -1,8 +1,9 @@
 package chessgame;
 
-import chessgame.pieces.ChessPiece;
 import java.util.HashMap;
 import java.util.Map;
+
+import chessgame.pieces.Piece;
 import javafx.scene.image.Image;
 
 public class ImageLibrary
@@ -37,7 +38,8 @@ public class ImageLibrary
             for(TeamColor c : TeamColor.values())
             {
                 String imageName = ImageLibrary.getImageName(p, c);
-                Image image = new Image("images/" + imageName, 75, 75, false, false);
+                // Image image = new Image("images/" + imageName, 75, 75, false, false); // Original NetBeans path - doesn't work with Maven classpath
+                Image image = new Image(ImageLibrary.class.getResource("/images/" + imageName).toString(), 75, 75, false, false);
                 images.put(imageName, image);
             }
         }

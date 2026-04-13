@@ -7,10 +7,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
 import javafx.event.EventHandler;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.transform.Rotate;
+import javafx.util.Duration;
 
 public class ChessBoard extends GridPane
 {
@@ -21,6 +25,11 @@ public class ChessBoard extends GridPane
     private ChessPiece selectedPiece;
     
     private TeamColor turn = TeamColor.WHITE;
+
+    private ControlsPane controlsPane;
+    private Label warningLabel;
+    private PauseTransition warningPause;
+    private FadeTransition warningFade;
 
     private Squad whiteSquad;
     private Squad blackSquad;
@@ -89,7 +98,14 @@ public class ChessBoard extends GridPane
         if(null == selectedSquare && square.isOccupied())
         {
             if(square.getCurrentPiece().getColor().equals(turn))
+            {
+                setStatus("");
                 setSelectedSquare(square, true);
+            }
+            else
+            {
+                setStatus("It's " + turn.getColorName() + "'s turn!");
+            }
         }
         else if(null != selectedSquare)
         {
@@ -135,6 +151,7 @@ public class ChessBoard extends GridPane
     
     private void movePiece(ChessPiece selectedPiece, BoardSquare from, BoardSquare to)
     {
+        setStatus("");
         from.setCurrentPiece(null);
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
@@ -206,6 +223,52 @@ public class ChessBoard extends GridPane
         }
     }
     
+    public void setControlsPane(ControlsPane controlsPane)
+    {
+        this.controlsPane = controlsPane;
+    }
+
+    public void setWarningLabel(Label label)
+    {
+        this.warningLabel = label;
+    }
+
+    private void setStatus(String message)
+    {
+        if (controlsPane != null)
+            controlsPane.setStatus(message);
+
+        if (!message.isEmpty())
+            showMessage(message, Duration.seconds(2));
+    }
+
+    // Show a floating message over the board.
+    // Pass null for displayDuration to keep it on screen until the next message or new game.
+    public void showMessage(String message, Duration displayDuration)
+    {
+        if (warningLabel == null) return;
+
+        if (warningPause != null) warningPause.stop();
+        if (warningFade != null) warningFade.stop();
+
+        warningLabel.setText(message);
+        warningLabel.setOpacity(1.0);
+        warningLabel.setVisible(true);
+
+        if (displayDuration != null)
+        {
+            warningPause = new PauseTransition(displayDuration);
+            warningPause.setOnFinished(e -> {
+                warningFade = new FadeTransition(Duration.millis(500), warningLabel);
+                warningFade.setFromValue(1.0);
+                warningFade.setToValue(0.0);
+                warningFade.setOnFinished(fe -> warningLabel.setVisible(false));
+                warningFade.play();
+            });
+            warningPause.play();
+        }
+    }
+
     public void startGame(TeamColor color)
     {
         this.turn = color;        

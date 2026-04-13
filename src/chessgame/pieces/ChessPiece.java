@@ -1,7 +1,6 @@
 package chessgame.pieces;
 
 import chessgame.TeamColor;
-import chessgame.Piece;
 import chessgame.Position;
 import java.util.Set;
 import javafx.event.EventHandler;

@@ -23,6 +23,7 @@ public class ControlsPane extends StackPane
     private final ToggleGroup colorSelectGroup;
     private final RadioButton blackSelectRadio;
     private final RadioButton whiteSelectRadio;
+    private final Label statusLabel;
     private final ChessBoard board;
     
     public ControlsPane(ChessBoard board)
@@ -65,7 +66,17 @@ public class ControlsPane extends StackPane
         radioBox.setPadding(new Insets(0, 12, 0, 12));
         //radioBox.setSpacing(10);
         
-        controlsBox.getChildren().addAll(radioBox, startButton);
+        statusLabel = new Label("");
+        statusLabel.setPrefSize(200, 20);
+        statusLabel.setFont(Font.font(Font.getDefault().getName(), FontWeight.BOLD, 14));
+        statusLabel.setTextFill(Color.YELLOW);
+
+        controlsBox.getChildren().addAll(radioBox, startButton, statusLabel);
         this.getChildren().addAll(controlsBox);
+    }
+
+    public void setStatus(String message)
+    {
+        statusLabel.setText(message);
     }
 }

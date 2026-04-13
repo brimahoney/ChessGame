@@ -1,4 +1,4 @@
-package network;
+package chessgame.network;
 
 import java.io.Serializable;
 

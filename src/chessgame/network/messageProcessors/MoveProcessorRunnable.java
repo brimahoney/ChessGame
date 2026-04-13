@@ -1,12 +1,12 @@
-package network.messageProcesors;
+package chessgame.network.messageProcessors;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
-public class HeartbeatProcessorRunnable extends MessageProcessorRunnable
+public class MoveProcessorRunnable extends MessageProcessorRunnable
 {
-    public HeartbeatProcessorRunnable(Socket clientSocket)
+    public MoveProcessorRunnable(Socket clientSocket)
     {
         super(clientSocket);
     }
@@ -18,11 +18,11 @@ public class HeartbeatProcessorRunnable extends MessageProcessorRunnable
             OutputStream output = clientSocket.getOutputStream();
 
             output.close();
-            System.out.println("Heartbeat Request processed");
+            System.out.println("Move Message processed");
         }
         catch (IOException e) 
         {
             e.printStackTrace();
         }   
-    }
+    }    
 }
