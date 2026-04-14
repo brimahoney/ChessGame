@@ -1,8 +1,5 @@
 package chessgame.model;
 
-import chessgame.Position;
-import chessgame.TeamColor;
-
 /**
  * Pure model representation of a board square — no JavaFX dependencies.
  * Tracks occupancy and the piece currently on this square.

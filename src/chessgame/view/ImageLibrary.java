@@ -1,9 +1,10 @@
-package chessgame;
+package chessgame.view;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import chessgame.pieces.Piece;
+import chessgame.model.Piece;
+import chessgame.model.TeamColor;
 import javafx.scene.image.Image;
 
 public class ImageLibrary

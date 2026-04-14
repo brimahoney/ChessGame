@@ -1,8 +1,5 @@
 package chessgame.model;
 
-import chessgame.Position;
-import chessgame.TeamColor;
-import chessgame.pieces.Piece;
 import java.util.Set;
 
 /**

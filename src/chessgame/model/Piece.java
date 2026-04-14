@@ -1,4 +1,4 @@
-package chessgame.pieces;
+package chessgame.model;
 
 import java.io.Serializable;
 

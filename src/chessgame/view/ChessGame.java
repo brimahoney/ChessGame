@@ -1,6 +1,7 @@
-package chessgame;
+package chessgame.view;
 
-
+import chessgame.model.TeamColor;
+import chessgame.network.NetworkManager;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -10,7 +11,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-import chessgame.network.NetworkManager;
 
 public class ChessGame extends Application
 {

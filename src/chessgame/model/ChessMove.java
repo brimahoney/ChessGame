@@ -1,8 +1,6 @@
-package chessgame;
+package chessgame.model;
 
 import java.io.Serializable;
-
-import chessgame.pieces.Piece;
 
 public class ChessMove implements Serializable
 {

@@ -1,8 +1,4 @@
-
-package chessgame;
-
-import chessgame.model.ChessPiece;
-import chessgame.pieces.Piece;
+package chessgame.model;
 
 public class Squad
 {

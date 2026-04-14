@@ -1,7 +1,6 @@
-package chessgame;
+package chessgame.view;
 
-
-
+import chessgame.model.TeamColor;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -43,7 +42,8 @@ public class ControlsPane extends StackPane
             @Override
             public void handle(ActionEvent event)
             {
-                board.startNewGame();
+                TeamColor startingColor = whiteSelectRadio.isSelected() ? TeamColor.WHITE : TeamColor.BLACK;
+                board.startNewGame(startingColor);
             }
         });
 

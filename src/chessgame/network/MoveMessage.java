@@ -1,6 +1,6 @@
 package chessgame.network;
 
-import chessgame.ChessMove;
+import chessgame.model.ChessMove;
 
 /**
  *

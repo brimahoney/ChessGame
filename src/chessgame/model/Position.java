@@ -1,4 +1,4 @@
-package chessgame;
+package chessgame.model;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -98,6 +98,7 @@ public class Position implements Serializable
         return Objects.hash(rank, file); 
     }
     
+    @Override
     public String toString()
     {
         return "Position: rank - " + rank + ", file - " + file + 

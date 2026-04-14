@@ -1,9 +1,16 @@
-package chessgame;
+package chessgame.view;
 
-import chessgame.model.ChessPiece;
+import chessgame.engine.MoveCalcThreadPool;
+import chessgame.engine.MovesCalculator;
 import chessgame.model.BoardSquare;
-import chessgame.pieces.Piece;
+import chessgame.model.ChessPiece;
+import chessgame.model.Piece;
+import chessgame.model.Position;
+import chessgame.model.Squad;
+import chessgame.model.TeamColor;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +93,7 @@ public class ChessBoard extends GridPane
                 BoardSquareView viewSquare = new BoardSquareView(modelSquare);
                 viewSquare.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>()
                     {
+                        @Override
                         public void handle(MouseEvent e)
                         {
                             processSelection(viewSquare);
@@ -286,6 +294,8 @@ public class ChessBoard extends GridPane
 
         if (!message.isEmpty())
             showMessage(message, Duration.seconds(2));
+        else if (warningLabel != null)
+            warningLabel.setVisible(false);
     }
 
     // Show a floating message over the board.
@@ -339,7 +349,26 @@ public class ChessBoard extends GridPane
     {
         this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
+        Squad enemy = turn.equals(TeamColor.WHITE) ? blackSquad : whiteSquad;
+        // Recalculate the enemy's moves first so they reflect the piece that just moved.
+        // This ensures isInCheck sees current attacked squares when we check below
+        // and when the active player's castling moves are evaluated.
+        calculateSquadMoves(enemy);
         calculateSquadMoves(squad);
+        checkForCheck(squad, enemy);
+    }
+
+    private void checkForCheck(Squad currentSquad, Squad enemySquad)
+    {
+        for (ChessPiece piece : currentSquad.getSquad())
+        {
+            if (piece.isAlive() && piece.getType() == Piece.KING)
+            {
+                if (MovesCalculator.isInCheck(piece, enemySquad.getSquad()))
+                    showMessage("Check!", null);
+                return;
+            }
+        }
     }
 
     public void calculateSquadMoves(Squad squad)
@@ -367,6 +396,58 @@ public class ChessBoard extends GridPane
         catch(InterruptedException ie)
         {
             ie.printStackTrace();
+        }
+
+        // If the king is in check, restrict every non-king piece to only those
+        // moves that resolve the check (block or capture the attacker).
+        Squad enemySquad = squad.getColor() == TeamColor.WHITE ? blackSquad : whiteSquad;
+        filterMovesForCheck(squad, enemySquad);
+    }
+
+    /**
+     * When the king is in check, non-king pieces may only move to squares that
+     * resolve the check.  In a double check only the king can move.
+     */
+    private void filterMovesForCheck(Squad squad, Squad enemySquad)
+    {
+        ChessPiece king = null;
+        for (ChessPiece piece : squad.getSquad())
+        {
+            if (piece.isAlive() && piece.getType() == Piece.KING)
+            {
+                king = piece;
+                break;
+            }
+        }
+
+        if (king == null || !MovesCalculator.isInCheck(king, enemySquad.getSquad()))
+            return;
+
+        List<ChessPiece> attackers = MovesCalculator.findAttackers(king, enemySquad.getSquad());
+
+        if (attackers.size() > 1)
+        {
+            // Double check — only the king may move
+            for (ChessPiece piece : squad.getSquad())
+            {
+                if (piece.isAlive() && piece.getType() != Piece.KING)
+                    piece.setAllowedMoves(Collections.emptySet());
+            }
+            return;
+        }
+
+        // Single check — non-king pieces may only block or capture the attacker
+        Set<Position> resolvingSquares = MovesCalculator.getCheckResolvingPositions(
+                king.getPosition(), attackers.get(0));
+
+        for (ChessPiece piece : squad.getSquad())
+        {
+            if (piece.isAlive() && piece.getType() != Piece.KING)
+            {
+                Set<Position> filtered = new HashSet<>(piece.getAllowedMoves());
+                filtered.retainAll(resolvingSquares);
+                piece.setAllowedMoves(filtered);
+            }
         }
     }
 

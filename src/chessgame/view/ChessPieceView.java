@@ -1,8 +1,9 @@
-package chessgame.pieces;
+package chessgame.view;
 
 import chessgame.model.ChessPiece;
-import chessgame.Position;
-import chessgame.TeamColor;
+import chessgame.model.Piece;
+import chessgame.model.Position;
+import chessgame.model.TeamColor;
 import javafx.event.EventHandler;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;

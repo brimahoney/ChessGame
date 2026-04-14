@@ -1,8 +1,9 @@
-package chessgame;
+package chessgame.view;
 
 import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
-import chessgame.pieces.ChessPieceView;
+import chessgame.model.Position;
+import chessgame.model.TeamColor;
 import javafx.event.EventHandler;
 import javafx.scene.input.DragEvent;
 import javafx.scene.layout.StackPane;

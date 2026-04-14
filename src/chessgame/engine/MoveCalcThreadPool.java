@@ -1,7 +1,10 @@
-package chessgame;
+package chessgame.engine;
 
 import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
+import chessgame.model.Position;
+import chessgame.model.Squad;
+import chessgame.model.TeamColor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -60,7 +63,7 @@ public class MoveCalcThreadPool
         return this.pool.invokeAll(tasks);
     }
 
-    void shutDown() 
+    public void shutDown()
     {
         this.pool.shutdown();
     }
