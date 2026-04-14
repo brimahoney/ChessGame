@@ -1,9 +1,8 @@
 
 package chessgame;
 
-import chessgame.pieces.ChessPiece;
+import chessgame.model.ChessPiece;
 import chessgame.pieces.Piece;
-import javafx.scene.image.Image;
 
 public class Squad
 {
@@ -15,26 +14,26 @@ public class Squad
     private ChessPiece[] pawns = new ChessPiece[8];
 
     private final TeamColor color;
-    
-    private ChessPiece[] pieces; 
-    
+
+    private ChessPiece[] pieces;
+
     public Squad(TeamColor color)
     {
         this.color = color;
         pieces = new ChessPiece[16];
         createSquad(color);
     }
-    
+
     public TeamColor getColor()
     {
         return this.color;
     }
-    
+
     public ChessPiece[] getSquad()
     {
         return pieces;
     }
-    
+
     private void createSquad(TeamColor color)
     {
         int i = 0;
@@ -56,57 +55,51 @@ public class Squad
             pieces[i++] = pawn;
         }
     }
-    
+
     private void createKingAndQueen(TeamColor color)
     {
         int rank = Squad.decideRank(color, false);
-        Image image = ImageLibrary.getImage(Piece.KING, color);
-        this.king = new ChessPiece(new Position('e', rank), color, image, Piece.KING);
-        image = ImageLibrary.getImage(Piece.QUEEN, color);
-        this.queen = new ChessPiece(new Position('d', rank), color, image, Piece.QUEEN);
+        this.king = new ChessPiece(new Position('e', rank), color, Piece.KING);
+        this.queen = new ChessPiece(new Position('d', rank), color, Piece.QUEEN);
     }
 
     private void createBishops(TeamColor color)
     {
         int rank = Squad.decideRank(color, false);
-        Image image = ImageLibrary.getImage(Piece.BISHOP, color);
-        bishops[0] = new ChessPiece(new Position('c', rank), color, image, Piece.BISHOP);
-        bishops[1] = new ChessPiece(new Position('f', rank), color, image, Piece.BISHOP);
+        bishops[0] = new ChessPiece(new Position('c', rank), color, Piece.BISHOP);
+        bishops[1] = new ChessPiece(new Position('f', rank), color, Piece.BISHOP);
     }
-    
+
     private void createKnights(TeamColor color)
     {
         int rank = Squad.decideRank(color, false);
-        Image image = ImageLibrary.getImage(Piece.KNIGHT, color);
-        knights[0] = new ChessPiece(new Position('b', rank), color, image, Piece.KNIGHT);
-        knights[1] = new ChessPiece(new Position('g', rank), color, image, Piece.KNIGHT);
+        knights[0] = new ChessPiece(new Position('b', rank), color, Piece.KNIGHT);
+        knights[1] = new ChessPiece(new Position('g', rank), color, Piece.KNIGHT);
     }
-    
+
     private void createRooks(TeamColor color)
     {
         int rank = Squad.decideRank(color, false);
-        Image image = ImageLibrary.getImage(Piece.ROOK, color);
-        rooks[0] = new ChessPiece(new Position('a', rank), color, image, Piece.ROOK);
-        rooks[1] = new ChessPiece(new Position('h', rank), color, image, Piece.ROOK);
+        rooks[0] = new ChessPiece(new Position('a', rank), color, Piece.ROOK);
+        rooks[1] = new ChessPiece(new Position('h', rank), color, Piece.ROOK);
     }
-    
+
     private void createPawns(TeamColor color)
     {
         int rank = Squad.decideRank(color, true);
         char file = 'a';
-        Image image = ImageLibrary.getImage(Piece.PAWN, color);
-        
+
         for(int i = 0; i < pawns.length; i++)
         {
-            pawns[i] = new ChessPiece(new Position(file++, rank), color, image, Piece.PAWN);
+            pawns[i] = new ChessPiece(new Position(file++, rank), color, Piece.PAWN);
         }
     }
-    
+
     public void promotePawn()
     {
         // promote the pawn to queen, rook, bishop, or knight
     }
-    
+
     public static int decideRank(TeamColor color, boolean isPawn)
     {
         int rank;

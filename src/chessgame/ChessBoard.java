@@ -1,6 +1,6 @@
 package chessgame;
 
-import chessgame.pieces.ChessPiece;
+import chessgame.model.ChessPiece;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
