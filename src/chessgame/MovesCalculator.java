@@ -13,11 +13,13 @@ public class MovesCalculator implements Callable<Set<Position>>
 {
     private final ChessPiece piece;
     private final BoardSquare[][] board;
+    private final ChessPiece[] enemyPieces;
 
-    public MovesCalculator(ChessPiece piece, BoardSquare[][] board)
+    public MovesCalculator(ChessPiece piece, BoardSquare[][] board, ChessPiece[] enemyPieces)
     {
         this.piece = piece;
         this.board = board;
+        this.enemyPieces = enemyPieces;
     }
     
     @Override
@@ -34,6 +36,7 @@ public class MovesCalculator implements Callable<Set<Position>>
             case KING:
                 moves.addAll(calculateDiagonalMoves(true));
                 moves.addAll(calculatePerpendicularMoves(true));
+                moves.addAll(calculateCastlingMoves());
                 break;
             case QUEEN:
                 moves.addAll(calculateDiagonalMoves(false));
@@ -156,12 +159,87 @@ public class MovesCalculator implements Callable<Set<Position>>
         return moves;
     }
     
-    private Set<Position> calculateCastlingMove()
+    /**
+     * Castling is legal when:
+     *   - The king has not previously moved
+     *   - The rook on that side has not previously moved
+     *   - No pieces stand between the king and the rook
+     *   - The king is not currently in check
+     *   - The king does not pass through or land on a square attacked by the enemy
+     *
+     * Enemy attacked squares are derived from the enemy pieces' most recently
+     * calculated allowedMoves (updated at the end of each enemy turn).
+     */
+    private Set<Position> calculateCastlingMoves()
     {
         HashSet<Position> moves = new HashSet<>();
+
+        if (!piece.isFirstMove())
+            return moves;
+
+        int x = piece.getPosition().getX();
+        int y = piece.getPosition().getY();
+
+        // Sanity check: king must still be on the e-file
+        if (x != 4)
+            return moves;
+
+        Set<Position> attacked = getEnemyAttackedSquares();
+
+        // King must not currently be in check
+        if (attacked.contains(piece.getPosition()))
+            return moves;
+
+        // --- Kingside (short) castling ---
+        // Rook on h-file (x=7); squares f (x=5) and g (x=6) must be empty and unattacked
+        BoardSquare kingsideRookSquare = board[7][y];
+        if (kingsideRookSquare.isOccupied())
+        {
+            ChessPiece kingsideRook = kingsideRookSquare.getCurrentPiece();
+            if (kingsideRook.getType() == Piece.ROOK &&
+                kingsideRook.getColor().equals(piece.getColor()) &&
+                kingsideRook.isFirstMove() &&
+                !board[5][y].isOccupied() && !board[6][y].isOccupied() &&
+                !attacked.contains(new Position(5, y)) &&
+                !attacked.contains(new Position(6, y)))
+            {
+                moves.add(new Position(6, y));  // king lands on g-file
+            }
+        }
+
+        // --- Queenside (long) castling ---
+        // Rook on a-file (x=0); squares b (x=1), c (x=2), d (x=3) must be empty;
+        // c and d must also be unattacked (b is irrelevant for king path)
+        BoardSquare queensideRookSquare = board[0][y];
+        if (queensideRookSquare.isOccupied())
+        {
+            ChessPiece queensideRook = queensideRookSquare.getCurrentPiece();
+            if (queensideRook.getType() == Piece.ROOK &&
+                queensideRook.getColor().equals(piece.getColor()) &&
+                queensideRook.isFirstMove() &&
+                !board[1][y].isOccupied() && !board[2][y].isOccupied() && !board[3][y].isOccupied() &&
+                !attacked.contains(new Position(3, y)) &&
+                !attacked.contains(new Position(2, y)))
+            {
+                moves.add(new Position(2, y));  // king lands on c-file
+            }
+        }
+
         return moves;
     }
-    
+
+    /** Union of all squares the enemy can currently move to (proxy for attacked squares). */
+    private Set<Position> getEnemyAttackedSquares()
+    {
+        Set<Position> attacked = new HashSet<>();
+        for (ChessPiece enemy : enemyPieces)
+        {
+            if (enemy.isAlive() && enemy.getAllowedMoves() != null)
+                attacked.addAll(enemy.getAllowedMoves());
+        }
+        return attacked;
+    }
+
     private Set<Position> calculateEnPassantMove()
     {
         HashSet<Position> moves = new HashSet<>();

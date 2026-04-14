@@ -2,6 +2,7 @@ package chessgame;
 
 import chessgame.model.ChessPiece;
 import chessgame.model.BoardSquare;
+import chessgame.pieces.Piece;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,12 +159,51 @@ public class ChessBoard extends GridPane
     private void movePiece(ChessPiece selectedPiece, BoardSquareView from, BoardSquareView to)
     {
         setStatus("");
+
+        // Detect castling: king moving two squares horizontally
+        if (selectedPiece.getType() == Piece.KING &&
+            Math.abs(to.getPosition().getX() - from.getPosition().getX()) == 2)
+        {
+            executeCastling(selectedPiece, from, to);
+            return;
+        }
+
         from.setCurrentPiece(null);
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
         setSelectedSquare(to, false);
         if(selectedPiece.isFirstMove())
             selectedPiece.setMoved();
+        endTurn();
+    }
+
+    /**
+     * Executes both halves of a castling move: slides the king two squares and
+     * jumps the rook to the square the king crossed.
+     *   Kingside:  king e→g, rook h→f
+     *   Queenside: king e→c, rook a→d
+     */
+    private void executeCastling(ChessPiece king, BoardSquareView kingFrom, BoardSquareView kingTo)
+    {
+        int y = kingFrom.getPosition().getY();
+        boolean kingside = kingTo.getPosition().getX() == 6;
+
+        BoardSquareView rookFrom = squaresMap.get(new Position(kingside ? 7 : 0, y));
+        BoardSquareView rookTo   = squaresMap.get(new Position(kingside ? 5 : 3, y));
+
+        ChessPiece rook = rookFrom.getCurrentPiece();
+
+        // Move king
+        kingFrom.setCurrentPiece(null);
+        kingTo.setCurrentPiece(king);
+        king.setMoved();
+
+        // Move rook
+        rookFrom.setCurrentPiece(null);
+        rookTo.setCurrentPiece(rook);
+        rook.setMoved();
+
+        setSelectedSquare(kingFrom, false);
         endTurn();
     }
 
@@ -282,14 +322,17 @@ public class ChessBoard extends GridPane
         calculateSquadMoves(squad);
     }
 
-    public void startNewGame()
+    public void startNewGame(TeamColor startingColor)
     {
         clearBoard();
         whiteSquad = new Squad(TeamColor.WHITE);
         placePieces(whiteSquad);
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
-        startGame(TeamColor.WHITE);
+        // Refresh tasks so the thread pool references the new squads' pieces
+        moveCalculator.createTasks(whiteSquad, blackSquad.getSquad());
+        moveCalculator.createTasks(blackSquad, whiteSquad.getSquad());
+        startGame(startingColor);
     }
 
     public void endTurn()

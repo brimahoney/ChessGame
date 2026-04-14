@@ -33,19 +33,19 @@ public class MoveCalcThreadPool
                 System.out.println("Application Terminating ..."); 
             } 
         });
-        createTasks(whiteSquad);
-        createTasks(blackSquad);         
+        createTasks(whiteSquad, blackSquad.getSquad());
+        createTasks(blackSquad, whiteSquad.getSquad());
     }
-    
-    public void createTasks(Squad squad)
+
+    public void createTasks(Squad squad, ChessPiece[] enemyPieces)
     {
         ChessPiece[] pieces = squad.getSquad();
         List<MovesCalculator> tasks = new ArrayList<>();
         TeamColor color = squad.getColor();
-        
+
         for(ChessPiece piece : pieces)
         {
-            MovesCalculator moveCalc = new MovesCalculator(piece, this.board);
+            MovesCalculator moveCalc = new MovesCalculator(piece, this.board, enemyPieces);
             tasks.add(moveCalc);
         }
         if(color.equals(TeamColor.BLACK ))
