@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
 import chessgame.pieces.Piece;
 
@@ -12,7 +13,7 @@ public class MovesCalculator implements Callable<Set<Position>>
 {
     private final ChessPiece piece;
     private final BoardSquare[][] board;
-            
+
     public MovesCalculator(ChessPiece piece, BoardSquare[][] board)
     {
         this.piece = piece;

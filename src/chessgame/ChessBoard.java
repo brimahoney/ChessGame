@@ -1,6 +1,7 @@
 package chessgame;
 
 import chessgame.model.ChessPiece;
+import chessgame.model.BoardSquare;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +19,15 @@ import javafx.util.Duration;
 
 public class ChessBoard extends GridPane
 {
-    private BoardSquare[][] squares;
-    private Map<Position, BoardSquare> squaresMap;
-    
-    private BoardSquare selectedSquare;
+    // Model squares — passed to MovesCalculator (no JavaFX dependency)
+    private BoardSquare[][] modelSquares;
+    // View squares — added to the GridPane for rendering
+    private BoardSquareView[][] viewSquares;
+    private Map<Position, BoardSquareView> squaresMap;
+
+    private BoardSquareView selectedSquare;
     private ChessPiece selectedPiece;
-    
+
     private TeamColor turn = TeamColor.WHITE;
 
     private ControlsPane controlsPane;
@@ -34,65 +38,67 @@ public class ChessBoard extends GridPane
     private Squad whiteSquad;
     private Squad blackSquad;
     private final MoveCalcThreadPool moveCalculator;
-    
+
     public ChessBoard()
     {
         createSquares();
-        
+
         whiteSquad = new Squad(TeamColor.WHITE);
         placePieces(whiteSquad);
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
-        
-        moveCalculator = new MoveCalcThreadPool(squares, whiteSquad, blackSquad);
-        
-        for(int i = 0; i < squares.length; i++)
+
+        moveCalculator = new MoveCalcThreadPool(modelSquares, whiteSquad, blackSquad);
+
+        for(int i = 0; i < viewSquares.length; i++)
         {
-            for(int j = 0; j < squares[i].length; j++)
+            for(int j = 0; j < viewSquares[i].length; j++)
             {
-                this.add(squares[i][j], 7 - i, j);
+                this.add(viewSquares[i][j], 7 - i, j);
             }
         }
         this.getTransforms().add(new Rotate(180, 400, 400));
     }
-    
+
     private void placePieces(Squad squad)
     {
         for (ChessPiece piece : squad.getSquad())
         {
-            BoardSquare aSquare = squaresMap.get(piece.getPosition());
+            BoardSquareView aSquare = squaresMap.get(piece.getPosition());
             if(null != aSquare)
-                aSquare.setCurrentPiece(piece); 
+                aSquare.setCurrentPiece(piece);
         }
     }
-    
+
     private void createSquares()
     {
-        squares = new BoardSquare[8][8];
+        modelSquares = new BoardSquare[8][8];
+        viewSquares = new BoardSquareView[8][8];
         squaresMap = new HashMap<>();
-        
-        for(int i = 0; i < squares.length; i++)
+
+        for(int i = 0; i < 8; i++)
         {
-            for(int j = 0; j < squares[i].length; j++)
+            for(int j = 0; j < 8; j++)
             {
-                //Position p = new Position(file++, rank);
                 Position p = new Position(i, j);
-                BoardSquare square = new BoardSquare(decideColor(7 - i, j), p);
-                square.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() 
+                BoardSquare modelSquare = new BoardSquare(decideColor(7 - i, j), p);
+                BoardSquareView viewSquare = new BoardSquareView(modelSquare);
+                viewSquare.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>()
                     {
-                        public void handle(MouseEvent e) 
-                        { 
-                            processSelection(square);
-                            System.out.println(square.getPosition().toString());
+                        public void handle(MouseEvent e)
+                        {
+                            processSelection(viewSquare);
+                            System.out.println(viewSquare.getPosition().toString());
                         }
                     });
-                squares[i][j] = square;
-                squaresMap.put(p, square);
+                modelSquares[i][j] = modelSquare;
+                viewSquares[i][j] = viewSquare;
+                squaresMap.put(p, viewSquare);
             }
         }
     }
 
-    private void processSelection(BoardSquare square)
+    private void processSelection(BoardSquareView square)
     {
         // select a square/piece (no previous selection)
         if(null == selectedSquare && square.isOccupied())
@@ -131,8 +137,8 @@ public class ChessBoard extends GridPane
                 else
                 {
                     // take piece when selected and previous selected are not friendly
-                    if(!selectedPiece.isFriendly(square.getCurrentPiece())) 
-                    {        
+                    if(!selectedPiece.isFriendly(square.getCurrentPiece()))
+                    {
                         if(selectedPiece.isAllowedMove(square.getPosition()))
                         {
                             takePiece(selectedPiece, selectedSquare, square);
@@ -148,8 +154,8 @@ public class ChessBoard extends GridPane
             }
         }
     }
-    
-    private void movePiece(ChessPiece selectedPiece, BoardSquare from, BoardSquare to)
+
+    private void movePiece(ChessPiece selectedPiece, BoardSquareView from, BoardSquareView to)
     {
         setStatus("");
         from.setCurrentPiece(null);
@@ -160,8 +166,8 @@ public class ChessBoard extends GridPane
             selectedPiece.setMoved();
         endTurn();
     }
-    
-    private void takePiece(ChessPiece selectedPiece, BoardSquare from, BoardSquare to)
+
+    private void takePiece(ChessPiece selectedPiece, BoardSquareView from, BoardSquareView to)
     {
         from.setCurrentPiece(null);
         to.setCurrentPiece(selectedPiece);
@@ -171,8 +177,8 @@ public class ChessBoard extends GridPane
             selectedPiece.setMoved();
         endTurn();
     }
-                    
-    private void setSelectedSquare(BoardSquare square, boolean selected)
+
+    private void setSelectedSquare(BoardSquareView square, boolean selected)
     {
         if(selected)
         {
@@ -204,7 +210,7 @@ public class ChessBoard extends GridPane
             this.selectedPiece = null;
         }
     }
-    
+
     private TeamColor decideColor(int i, int j)
     {
         if(i % 2 == 0)
@@ -222,7 +228,7 @@ public class ChessBoard extends GridPane
                 return TeamColor.BLACK;
         }
     }
-    
+
     public void setControlsPane(ControlsPane controlsPane)
     {
         this.controlsPane = controlsPane;
@@ -271,11 +277,11 @@ public class ChessBoard extends GridPane
 
     public void startGame(TeamColor color)
     {
-        this.turn = color;        
+        this.turn = color;
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         calculateSquadMoves(squad);
     }
-    
+
     public void startNewGame()
     {
         clearBoard();
@@ -285,19 +291,19 @@ public class ChessBoard extends GridPane
         placePieces(blackSquad);
         startGame(TeamColor.WHITE);
     }
-    
+
     public void endTurn()
     {
-        this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;        
+        this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         calculateSquadMoves(squad);
     }
-    
+
     public void calculateSquadMoves(Squad squad)
     {
         try
         {
-            // calculate the moves for the side about to take it's turn 
+            // calculate the moves for the side about to take its turn
             List<Future<Set<Position>>> responses = moveCalculator.calculateMoves(squad);
             ChessPiece[] pieces = squad.getSquad();
             int index = 0;
@@ -313,7 +319,6 @@ public class ChessBoard extends GridPane
                 {
                     ee.printStackTrace();
                 }
-                
             }
         }
         catch(InterruptedException ie)
@@ -321,19 +326,18 @@ public class ChessBoard extends GridPane
             ie.printStackTrace();
         }
     }
-    
+
     private void clearBoard()
     {
-        for(BoardSquare square : squaresMap.values())
+        for(BoardSquareView square : squaresMap.values())
         {
             square.clearSquare();
         }
     }
-    
+
     public void shutdownMovesCalculator()
     {
         System.out.println("Shutting down moves calculator... ");
         this.moveCalculator.shutDown();
     }
 }
-

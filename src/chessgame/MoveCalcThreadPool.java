@@ -1,5 +1,6 @@
 package chessgame;
 
+import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
 import java.util.ArrayList;
 import java.util.List;
