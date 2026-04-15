@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
@@ -13,8 +12,14 @@ import chessgame.model.Piece;
 import chessgame.model.Position;
 import chessgame.model.TeamColor;
 
-public class MovesCalculator implements Callable<Set<Position>>
+public class MovesCalculator
 {
+    // Direction vectors: cardinal (N/S/E/W) and diagonal (NE/NW/SE/SW)
+    private static final int[][] CARDINAL = {{ 0, 1}, { 0,-1}, { 1, 0}, {-1, 0}};
+    private static final int[][] DIAGONAL = {{ 1, 1}, { 1,-1}, {-1, 1}, {-1,-1}};
+    private static final int[][] ALL_DIRS = {{ 0, 1}, { 0,-1}, { 1, 0}, {-1, 0},
+                                             { 1, 1}, { 1,-1}, {-1, 1}, {-1,-1}};
+
     private final ChessPiece piece;
     private final BoardSquare[][] board;
     private final ChessPiece[] enemyPieces;
@@ -25,64 +30,74 @@ public class MovesCalculator implements Callable<Set<Position>>
         this.board = board;
         this.enemyPieces = enemyPieces;
     }
-    
-    @Override
-    public Set<Position> call() throws Exception 
+
+    public Set<Position> calculate()
     {
-        HashSet<Position> moves = new HashSet<>();
-        
-        // return immediately if piece is not active
-        if(!this.piece.isAlive())
-            return Collections.EMPTY_SET;
-        
-        switch (piece.getType()) 
+        if (!piece.isAlive())
+            return Collections.emptySet();
+
+        Set<Position> moves = new HashSet<>();
+
+        switch (piece.getType())
         {
             case KING -> {
-                moves.addAll(calculateDiagonalMoves(true));
-                moves.addAll(calculatePerpendicularMoves(true));
+                for (int[] d : ALL_DIRS)
+                    moves.addAll(slidingMoves(d[0], d[1], 1));
                 moves.addAll(calculateCastlingMoves());
-                // Remove any square the enemy can attack — king cannot move into check
                 Set<Position> attacked = getEnemyAttackedSquares();
                 moves.removeIf(attacked::contains);
             }
             case QUEEN -> {
-                moves.addAll(calculateDiagonalMoves(false));
-                moves.addAll(calculatePerpendicularMoves(false));
+                for (int[] d : ALL_DIRS)
+                    moves.addAll(slidingMoves(d[0], d[1], 7));
             }
-            case BISHOP -> moves.addAll(calculateDiagonalMoves(false));
+            case ROOK -> {
+                for (int[] d : CARDINAL)
+                    moves.addAll(slidingMoves(d[0], d[1], 7));
+            }
+            case BISHOP -> {
+                for (int[] d : DIAGONAL)
+                    moves.addAll(slidingMoves(d[0], d[1], 7));
+            }
             case KNIGHT -> moves.addAll(calculateKnightMoves());
-            case ROOK -> moves.addAll(calculatePerpendicularMoves(false));
-            case PAWN -> moves.addAll(calculatePawnMoves());
+            case PAWN   -> moves.addAll(calculatePawnMoves());
         }
         return moves;
     }
 
-    private Set<Position> calculateDiagonalMoves(boolean isKing)
+    /**
+     * Traces a ray from the piece's position in direction (dx, dy), stopping after
+     * maxSteps, at the board edge, or when a piece is hit. An enemy on the terminal
+     * square is included as a capture; a friendly piece stops the ray without adding.
+     */
+    private Set<Position> slidingMoves(int dx, int dy, int maxSteps)
     {
-        HashSet<Position> moves = new HashSet<>();
-        moves.addAll(calculateNorthEastMoves(piece.getPosition(), isKing));
-        moves.addAll(calculateNorthWestMoves(piece.getPosition(), isKing));
-        moves.addAll(calculateSouthEastMoves(piece.getPosition(), isKing));
-        moves.addAll(calculateSouthWestMoves(piece.getPosition(), isKing));
+        Set<Position> moves = new HashSet<>();
+        int x = piece.getPosition().getX() + dx;
+        int y = piece.getPosition().getY() + dy;
+
+        for (int steps = 0; steps < maxSteps && isValidPosition(x, y); steps++)
+        {
+            BoardSquare sq = board[x][y];
+            if (sq.isOccupied())
+            {
+                if (!sq.getCurrentPiece().isFriendly(piece))
+                    moves.add(new Position(x, y));
+                break;
+            }
+            moves.add(new Position(x, y));
+            x += dx;
+            y += dy;
+        }
         return moves;
     }
-    
-    private Set<Position> calculatePerpendicularMoves(boolean isKing)
-    {
-        HashSet<Position> moves = new HashSet<>();
-        moves.addAll(calculateNorthMoves(piece.getPosition(), isKing));
-        moves.addAll(calculateSouthMoves(piece.getPosition(), isKing));
-        moves.addAll(calculateEastMoves(piece.getPosition(), isKing));        
-        moves.addAll(calculateWestMoves(piece.getPosition(), isKing));
-        return moves;
-    }
-    
+
     private Set<Position> calculateKnightMoves()
     {
-        HashSet<Position> moves = new HashSet<>();
+        Set<Position> moves = new HashSet<>();
         int x = piece.getPosition().getX();
         int y = piece.getPosition().getY();
-        
+
         moves.add(new Position(x - 2, y - 1));
         moves.add(new Position(x - 2, y + 1));
         moves.add(new Position(x + 2, y - 1));
@@ -92,72 +107,43 @@ public class MovesCalculator implements Callable<Set<Position>>
         moves.add(new Position(x + 1, y - 2));
         moves.add(new Position(x + 1, y + 2));
 
-        
-        //remove from the moves if not a valid position or 
-        // if the square is occupied and the occupier is friendly
-        moves.removeIf((Position move) -> 
-        {
-            if(!isValidPosition(move))
-            {
-                return true;
-            }
-            else
-            {
-                BoardSquare theSquare = board[move.getX()][move.getY()];
-                return theSquare.isOccupied() && theSquare.getCurrentPiece().isFriendly(this.piece);
-            }
-        });
-       
+        moves.removeIf(move ->
+            !isValidPosition(move) ||
+            (board[move.getX()][move.getY()].isOccupied() &&
+             board[move.getX()][move.getY()].getCurrentPiece().isFriendly(piece))
+        );
         return moves;
     }
-    
+
     private Set<Position> calculatePawnMoves()
     {
-        HashSet<Position> moves = new HashSet<>();
-        Position position = piece.getPosition();
-        boolean wasNorthMove = false;
-        boolean wasSouthMove = false;
-        
-        // if white, can only move North
-        if(piece.getColor().equals(TeamColor.WHITE))
+        Set<Position> moves = new HashSet<>();
+        int x = piece.getPosition().getX();
+        int y = piece.getPosition().getY();
+        int dy = piece.getColor() == TeamColor.WHITE ? 1 : -1;
+
+        // Forward one square — blocked if any piece occupies it
+        if (isValidPosition(x, y + dy) && !board[x][y + dy].isOccupied())
         {
-            Set<Position> northMoves = calculateNorthMoves(position, true);
-            wasNorthMove = !northMoves.isEmpty();
-            moves.addAll(northMoves);
-            moves.addAll(calculateNorthEastMoves(piece.getPosition(), true));
-            moves.addAll(calculateNorthWestMoves(piece.getPosition(), true));
+            moves.add(new Position(x, y + dy));
+            // Double forward on first move — only if the intermediate square was clear
+            if (piece.isFirstMove() && isValidPosition(x, y + 2 * dy) && !board[x][y + 2 * dy].isOccupied())
+                moves.add(new Position(x, y + 2 * dy));
         }
-        // else if black, can only move south 
-        else
+
+        // Diagonal captures — only if an enemy occupies the square
+        for (int dx : new int[]{-1, 1})
         {
-            Set<Position> southMoves = calculateSouthMoves(position, true);
-            wasSouthMove = !southMoves.isEmpty();
-            moves.addAll(southMoves);
-            moves.addAll(calculateSouthEastMoves(piece.getPosition(), true));
-            moves.addAll(calculateSouthWestMoves(piece.getPosition(), true));
-        }
-        
-        // if first move of pawn, then add second move forward
-        if(piece.isFirstMove())
-        {
-            int moveDirection = piece.getColor().equals(TeamColor.WHITE) ? 1 : -1;
-            int x = position.getX();
-            int y = position.getY() + moveDirection;
-            Position newPosition = new Position(x, y);
-            if(piece.getColor().equals(TeamColor.WHITE))
+            if (isValidPosition(x + dx, y + dy))
             {
-                if(wasNorthMove)
-                    moves.addAll(calculateNorthMoves(newPosition, true));
-            }
-            else
-            {
-                if(wasSouthMove)
-                    moves.addAll(calculateSouthMoves(newPosition, true));
+                BoardSquare sq = board[x + dx][y + dy];
+                if (sq.isOccupied() && !sq.getCurrentPiece().isFriendly(piece))
+                    moves.add(new Position(x + dx, y + dy));
             }
         }
         return moves;
     }
-    
+
     /**
      * Castling is legal when:
      *   - The king has not previously moved
@@ -171,7 +157,7 @@ public class MovesCalculator implements Callable<Set<Position>>
      */
     private Set<Position> calculateCastlingMoves()
     {
-        HashSet<Position> moves = new HashSet<>();
+        Set<Position> moves = new HashSet<>();
 
         if (!piece.isFirstMove())
             return moves;
@@ -248,6 +234,12 @@ public class MovesCalculator implements Callable<Set<Position>>
         return attacked;
     }
 
+    private Set<Position> calculateEnPassantMove()
+    {
+        // TODO: implement en passant
+        return Collections.emptySet();
+    }
+
     /** Both diagonal squares a pawn threatens, regardless of occupancy. */
     private static Set<Position> getPawnAttackSquares(ChessPiece pawn)
     {
@@ -260,17 +252,12 @@ public class MovesCalculator implements Callable<Set<Position>>
         return squares;
     }
 
-    private Set<Position> calculateEnPassantMove()
-    {
-        HashSet<Position> moves = new HashSet<>();
-        return moves;
-    }
-    
     public static boolean isInCheck(ChessPiece king, ChessPiece[] enemyPieces)
     {
-        for(ChessPiece enemy : enemyPieces)
+        for (ChessPiece enemy : enemyPieces)
         {
-            if(enemy.isAlive() && enemy.getAllowedMoves() != null && enemy.getAllowedMoves().contains(king.getPosition()))
+            if (enemy.isAlive() && enemy.getAllowedMoves() != null
+                    && enemy.getAllowedMoves().contains(king.getPosition()))
                 return true;
         }
         return false;
@@ -325,173 +312,6 @@ public class MovesCalculator implements Callable<Set<Position>>
         return squares;
     }
 
-    /**
-     * x - 1, y + 1
-     * Returns empty set if the moving piece is a pawn and the square diagonal
-     * to it is not occupied (pawns only attack diagonally)
-     */
-    private Set<Position> calculateNorthWestMoves(Position p, boolean isKing)
-    {
-        int x = p.getX() - 1;
-        int y = p.getY() + 1;        
-                
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, -1, 1, isKing);
-    }
-
-    //private Set<Position> calculateMovesWithPawnCheck(Position p, int xFactor, int yFactor, boolean )
-    //{
-        
-    //}
-        
-    /**
-     * x - 1, y - 1
-     * Returns empty set if the moving piece is a pawn and the square diagonal
-     * to it is not occupied (pawns only attack diagonally)
-     */    
-    private Set<Position> calculateSouthWestMoves(Position p, boolean isKing)
-    {
-        int x = p.getX() - 1;
-        int y = p.getY() - 1;        
-
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, -1, -1, isKing);
-    }
-    
-    /**
-     * x + 1, y + 1
-     * Returns empty set if the moving piece is a pawn and the square diagonal
-     * to it is not occupied (pawns only attack diagonally)
-     */
-    private Set<Position> calculateNorthEastMoves(Position p, boolean isKing)
-    {
-        int x = p.getX() + 1;
-        int y = p.getY() + 1;        
-
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, 1, 1, isKing);
-    }
-    
-    /**
-     * x + 1, y - 1
-     * Returns empty set if the moving piece is a pawn and the square diagonal
-     * to it is not occupied (pawns only attack diagonally)
-     */
-    private Set<Position> calculateSouthEastMoves(Position p, boolean isKing)
-    {
-        int x = p.getX() + 1;
-        int y = p.getY() - 1;        
-
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN)) && !board[x][y].isOccupied())
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, 1, -1, isKing);
-    }
-
-    /**
-     * x, y + 1
-     * Returns empty set if the moving piece is a pawn and the square directly
-     * in front is occupied (pawns only attack diagonally)
-     */
-    private Set<Position> calculateNorthMoves(Position p, boolean isKing)
-    {
-        int x = p.getX();
-        int y = p.getY() + 1;        
-                
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN) && board[x][y].isOccupied()))
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, 0, 1, isKing);
-    }
-
-    /**
-     * x, y - 1
-     * Returns empty set if the moving piece is a pawn and the square directly
-     * in front is occupied (pawns only attack diagonally)
-     */    
-    private Set<Position> calculateSouthMoves(Position p, boolean isKing)
-    {
-        int x = p.getX();
-        int y = p.getY() - 1;        
-                
-        if(!isValidPosition(x, y) ||
-                (this.piece.getType().equals(Piece.PAWN) && board[x][y].isOccupied()))
-        {
-            return Collections.EMPTY_SET;
-        }
-        else
-            return calculateMoves(p, 0, -1, isKing);
-    }
-    
-    /**
-     * x + 1, y
-     */
-    private Set<Position> calculateEastMoves(Position p, boolean isKing)
-    {
-        return calculateMoves(p, 1, 0, isKing);
-    }
-    
-    /**
-     * x - 1, y
-     */
-    private Set<Position> calculateWestMoves(Position p, boolean isKing)
-    {
-        return calculateMoves(p, -1, 0, isKing);
-    }
-    
-    private Set<Position> calculateMoves(Position p, int xFactor, int yFactor, boolean isKing)
-    {
-        int x = p.getX() + xFactor;
-        int y = p.getY() + yFactor;        
-        Position position = new Position(x, y);
-        HashSet<Position> moves = new HashSet<>();
-        
-        if(!isValidPosition(x, y))
-            return moves;
-        
-        BoardSquare theSquare = board[x][y];
-        if(theSquare.isOccupied())
-        {
-            if(theSquare.getCurrentPiece().isFriendly(this.piece))
-            {
-                return moves;
-            }
-            else
-            {
-                moves.add(position);
-                return moves;
-            }
-        }
-        else
-            moves.add(position);
-        
-        if(!isKing)
-            moves.addAll(calculateMoves(position, xFactor, yFactor, isKing));
-        
-        return moves;        
-    }
-    
     public static boolean isValidPosition(int x, int y)
     {
         return !(x < 0 || x > 7 || y < 0 || y > 7);

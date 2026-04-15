@@ -1,6 +1,5 @@
 package chessgame.view;
 
-import chessgame.engine.MoveCalcThreadPool;
 import chessgame.engine.MovesCalculator;
 import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
@@ -14,15 +13,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.event.EventHandler;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
-import javafx.scene.transform.Rotate;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
 
 public class ChessBoard extends GridPane
@@ -38,6 +44,12 @@ public class ChessBoard extends GridPane
 
     private TeamColor turn = TeamColor.WHITE;
 
+    // Drag state
+    private ChessPieceView dragging;
+    private BoardSquareView dragSource;
+    private double dragOriginX, dragOriginY;
+    private boolean isDragging;
+
     private ControlsPane controlsPane;
     private Label warningLabel;
     private PauseTransition warningPause;
@@ -45,7 +57,6 @@ public class ChessBoard extends GridPane
 
     private Squad whiteSquad;
     private Squad blackSquad;
-    private final MoveCalcThreadPool moveCalculator;
 
     public ChessBoard()
     {
@@ -56,16 +67,47 @@ public class ChessBoard extends GridPane
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
 
-        moveCalculator = new MoveCalcThreadPool(modelSquares, whiteSquad, blackSquad);
-
-        for(int i = 0; i < viewSquares.length; i++)
+        // Layout: column = file (a=0 … h=7), row = 7-rank (rank 8 at top, rank 1 at bottom)
+        for (int i = 0; i < viewSquares.length; i++)
         {
-            for(int j = 0; j < viewSquares[i].length; j++)
+            for (int j = 0; j < viewSquares[i].length; j++)
             {
-                this.add(viewSquares[i][j], 7 - i, j);
+                this.add(viewSquares[i][j], i, 7 - j);
             }
         }
-        this.getTransforms().add(new Rotate(180, 400, 400));
+
+        // Coordinate labels — rank numbers on the right, file letters along the bottom
+        for (int row = 0; row < 8; row++)
+        {
+            Label rankLabel = new Label(String.valueOf(8 - row));
+            rankLabel.setFont(Font.font("SansSerif", FontWeight.BOLD, 13));
+            rankLabel.setTextFill(Color.web("#d4b483"));
+            rankLabel.setPrefWidth(26);
+            rankLabel.setPrefHeight(100);
+            rankLabel.setPadding(new Insets(0, 0, 0, 8));
+            GridPane.setValignment(rankLabel, VPos.CENTER);
+            GridPane.setHalignment(rankLabel, HPos.CENTER);
+            this.add(rankLabel, 8, row);
+        }
+        for (int col = 0; col < 8; col++)
+        {
+            Label fileLabel = new Label(String.valueOf((char)('a' + col)));
+            fileLabel.setFont(Font.font("SansSerif", FontWeight.BOLD, 13));
+            fileLabel.setTextFill(Color.web("#d4b483"));
+            fileLabel.setPrefWidth(100);
+            fileLabel.setPrefHeight(26);
+            fileLabel.setAlignment(Pos.CENTER);
+            GridPane.setHalignment(fileLabel, HPos.CENTER);
+            this.add(fileLabel, col, 8);
+        }
+
+        this.setStyle("-fx-background-color: #3d2b1f;");
+        this.setPadding(new Insets(10));
+
+        // Drag handling — intercept at board level so pieces float above all squares
+        this.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::onDragStart);
+        this.addEventFilter(MouseEvent.MOUSE_DRAGGED,  this::onDragMove);
+        this.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onDragEnd);
     }
 
     private void placePieces(Squad squad)
@@ -328,6 +370,7 @@ public class ChessBoard extends GridPane
     public void startGame(TeamColor color)
     {
         this.turn = color;
+        if (controlsPane != null) controlsPane.setTurn(turn);
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         calculateSquadMoves(squad);
     }
@@ -339,15 +382,13 @@ public class ChessBoard extends GridPane
         placePieces(whiteSquad);
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
-        // Refresh tasks so the thread pool references the new squads' pieces
-        moveCalculator.createTasks(whiteSquad, blackSquad.getSquad());
-        moveCalculator.createTasks(blackSquad, whiteSquad.getSquad());
         startGame(startingColor);
     }
 
     public void endTurn()
     {
         this.turn = turn.equals(TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
+        if (controlsPane != null) controlsPane.setTurn(turn);
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         Squad enemy = turn.equals(TeamColor.WHITE) ? blackSquad : whiteSquad;
         // Recalculate the enemy's moves first so they reflect the piece that just moved.
@@ -373,34 +414,10 @@ public class ChessBoard extends GridPane
 
     public void calculateSquadMoves(Squad squad)
     {
-        try
-        {
-            // calculate the moves for the side about to take its turn
-            List<Future<Set<Position>>> responses = moveCalculator.calculateMoves(squad);
-            ChessPiece[] pieces = squad.getSquad();
-            int index = 0;
-            for(Future<Set<Position>> response : responses)
-            {
-                try
-                {
-                    Set<Position> positions = response.get();
-                    pieces[index].setAllowedMoves(positions);
-                    index++;
-                }
-                catch(ExecutionException ee)
-                {
-                    ee.printStackTrace();
-                }
-            }
-        }
-        catch(InterruptedException ie)
-        {
-            ie.printStackTrace();
-        }
-
-        // If the king is in check, restrict every non-king piece to only those
-        // moves that resolve the check (block or capture the attacker).
         Squad enemySquad = squad.getColor() == TeamColor.WHITE ? blackSquad : whiteSquad;
+        ChessPiece[] enemyPieces = enemySquad.getSquad();
+        for (ChessPiece piece : squad.getSquad())
+            piece.setAllowedMoves(new MovesCalculator(piece, modelSquares, enemyPieces).calculate());
         filterMovesForCheck(squad, enemySquad);
     }
 
@@ -451,6 +468,98 @@ public class ChessBoard extends GridPane
         }
     }
 
+    private void onDragStart(MouseEvent event)
+    {
+        if (event.getButton() != MouseButton.PRIMARY) return;
+
+        // Walk up from the click target to find a ChessPieceView
+        Node target = (Node) event.getTarget();
+        while (target != null && !(target instanceof ChessPieceView) && target != this)
+            target = target.getParent();
+
+        if (!(target instanceof ChessPieceView)) return;
+
+        ChessPieceView pieceView = (ChessPieceView) target;
+        if (!pieceView.getColor().equals(turn)) return;
+
+        dragging   = pieceView;
+        dragSource = (BoardSquareView) pieceView.getParent();
+        isDragging = false;
+
+        // Record the source square's top-left corner in board-local coordinates.
+        // Used in onDragMove to offset the translate so the piece centres under the cursor.
+        Point2D origin = this.sceneToLocal(dragSource.localToScene(0, 0));
+        dragOriginX = origin.getX();
+        dragOriginY = origin.getY();
+        // Do NOT consume — the MOUSE_PRESSED handler on BoardSquareView still runs
+        // processSelection(), which handles selection state and move-dot highlighting.
+    }
+
+    private void onDragMove(MouseEvent event)
+    {
+        if (dragging == null || event.getButton() != MouseButton.PRIMARY) return;
+
+        if (!isDragging)
+        {
+            isDragging = true;
+            dragSource.toFront();   // render source square above all siblings
+        }
+
+        Point2D mouse = this.sceneToLocal(event.getSceneX(), event.getSceneY());
+        // Centre the 80px image under the cursor (square is 100px, so offset by 50)
+        dragging.setTranslateX(mouse.getX() - dragOriginX - 50);
+        dragging.setTranslateY(mouse.getY() - dragOriginY - 50);
+    }
+
+    private void onDragEnd(MouseEvent event)
+    {
+        if (dragging == null || event.getButton() != MouseButton.PRIMARY) return;
+
+        // Always snap the piece back to its layout position
+        dragging.setTranslateX(0);
+        dragging.setTranslateY(0);
+
+        if (!isDragging)
+        {
+            // Mouse didn't move — treat as a plain click, already handled by MOUSE_PRESSED
+            dragging   = null;
+            dragSource = null;
+            return;
+        }
+
+        isDragging = false;
+        dragging   = null;
+
+        // Determine which square the piece was dropped on from mouse position.
+        // Board has 10px padding; each square is 100x100.
+        Point2D mouse = this.sceneToLocal(event.getSceneX(), event.getSceneY());
+        int col = (int)((mouse.getX() - 10) / 100);
+        int row = (int)((mouse.getY() - 10) / 100);
+
+        if (col < 0 || col > 7 || row < 0 || row > 7)
+        {
+            if (selectedSquare != null) setSelectedSquare(selectedSquare, false);
+            dragSource = null;
+            return;
+        }
+
+        BoardSquareView target = squaresMap.get(new Position(col, 7 - row));
+        BoardSquareView source = dragSource;
+        dragSource = null;
+
+        if (target == null) return;
+
+        if (target == source)
+        {
+            // Dropped back on source — deselect
+            if (selectedSquare != null) setSelectedSquare(selectedSquare, false);
+            return;
+        }
+
+        // Reuse the existing click logic to validate and execute the move
+        processSelection(target);
+    }
+
     private void clearBoard()
     {
         for(BoardSquareView square : squaresMap.values())
@@ -459,9 +568,4 @@ public class ChessBoard extends GridPane
         }
     }
 
-    public void shutdownMovesCalculator()
-    {
-        System.out.println("Shutting down moves calculator... ");
-        this.moveCalculator.shutDown();
-    }
 }

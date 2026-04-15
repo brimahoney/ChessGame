@@ -8,7 +8,9 @@ import javafx.event.EventHandler;
 import javafx.scene.input.DragEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
@@ -30,18 +32,25 @@ public class BoardSquareView extends StackPane
 
     public BoardSquareView(BoardSquare model)
     {
-        Paint squareColor = Color.SIENNA;
-        if (model.getColor().equals(TeamColor.BLACK))
-            squareColor = Color.SEASHELL;
+        // TeamColor.WHITE = dark squares, TeamColor.BLACK = light squares (classic wood tones)
+        boolean isLightSquare = model.getColor().equals(TeamColor.BLACK);
 
-        this.rectangle = new Rectangle(widthAndHeight, widthAndHeight, squareColor);
+        // Diagonal gradient creates the main grain banding (light/dark alternating bands)
+        LinearGradient woodGrain = isLightSquare
+            ? new LinearGradient(0.05, 0, 0.9, 0.75, true, CycleMethod.REFLECT,
+                new Stop(0, Color.web("#F8E4C2")), new Stop(1, Color.web("#DFC490")))
+            : new LinearGradient(0.05, 0, 0.9, 0.75, true, CycleMethod.REFLECT,
+                new Stop(0, Color.web("#C49878")), new Stop(1, Color.web("#9A6640")));
+
+        this.rectangle = new Rectangle(widthAndHeight, widthAndHeight, woodGrain);
         this.rectangle.setStrokeWidth(8);
         this.rectangle.setStrokeType(StrokeType.INSIDE);
         this.getChildren().add(this.rectangle);
 
-        this.highLightCircle = new Circle(widthAndHeight / 7, null);
-        this.highLightCircle.setFill(Color.CHARTREUSE);
-        this.highLightCircle.setOpacity(0.6);
+
+        // Dot color adapts to the square: dark dot on light squares, light dot on dark squares
+        Color dotColor = isLightSquare ? Color.color(0, 0, 0, 0.25) : Color.color(1, 1, 1, 0.22);
+        this.highLightCircle = new Circle(widthAndHeight / 5.0, dotColor);
         //this.getChildren().add(this.highLightCircle);
 
         this.model = model;
@@ -82,7 +91,7 @@ public class BoardSquareView extends StackPane
     public void setSelected(boolean selected)
     {
         if (selected)
-            this.rectangle.setStroke(Color.CHARTREUSE);
+            this.rectangle.setStroke(Color.web("#F6F669"));
         else
             this.rectangle.setStroke(null);
         this.isSelected = selected;

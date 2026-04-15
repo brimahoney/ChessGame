@@ -66,8 +66,6 @@ public class ChessGame extends Application
     }
    
     @Override
-    public void stop()
-    {
-        chessBoard.shutdownMovesCalculator();
-    }
+    public void stop() {}
+
 }

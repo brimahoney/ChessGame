@@ -5,30 +5,19 @@ import java.util.Objects;
 
 public class Position implements Serializable
 {
-    private final int rank;
-    private final char file;
     private final int x;
     private final int y;
-    
+
     public Position(char file, int rank)
     {
-        this.rank = rank;
-        this.file = file;
-        this.x = Position.translateFile(file);
-        this.y = Position.translateRank(rank);
-    }
-    
-    public Position(int x, int y)
-    {
-        this((char)(x + 97), y + 1);
+        this.x = file - 'a';
+        this.y = rank - 1;
     }
 
-    /**
-     * @return the rank
-     */
-    public int getRank()
+    public Position(int x, int y)
     {
-        return rank;
+        this.x = x;
+        this.y = y;
     }
 
     public int getX()
@@ -36,72 +25,40 @@ public class Position implements Serializable
         return x;
     }
 
-    /**
-     * @return the file
-     */
-    public char getFile()
-    {
-        return file;
-    }
-
     public int getY()
     {
         return y;
     }
-        
-    /**
-     * Convert rank into int (y) index
-     * @param rank
-     * @return 
-     */
-    public static int translateRank(int rank)
+
+    public char getFile()
     {
-        return rank - 1;
+        return (char)(x + 'a');
     }
-    
-    /**
-     * Convert file into int (x) index
-     * @param file
-     * @return 
-     */
-    public static int translateFile(char file)
+
+    public int getRank()
     {
-        int ascii = (int)file;
-        return ascii - 97;
+        return y + 1;
     }
 
     @Override
     public boolean equals(Object thePosition)
     {
-        // If the object is compared with itself then return true   
-        if (thePosition == this) 
-        { 
-            return true; 
-        } 
-  
-        /* Check if thePosition is an instance of Position or not 
-          "null instanceof [type]" also returns false */
-        if (!(thePosition instanceof Position)) 
-        { 
-            return false; 
-        } 
-        
-        Position p = (Position)thePosition;
-        
-        return this.getRank() == p.getRank() &&
-                this.getFile() == p.getFile();
+        if (thePosition == this) return true;
+        if (!(thePosition instanceof Position)) return false;
+        Position p = (Position) thePosition;
+        return this.x == p.x && this.y == p.y;
     }
-    
+
     @Override
     public int hashCode()
     {
-        return Objects.hash(rank, file); 
+        return Objects.hash(x, y);
     }
-    
+
     @Override
     public String toString()
     {
-        return "Position: rank - " + rank + ", file - " + file + 
+        return "Position: rank - " + getRank() + ", file - " + getFile() +
                 "\n\t y - " + y + ", x - " + x;
     }
 }
