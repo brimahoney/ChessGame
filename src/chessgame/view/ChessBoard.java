@@ -54,9 +54,16 @@ public class ChessBoard extends GridPane
     private Label warningLabel;
     private PauseTransition warningPause;
     private FadeTransition warningFade;
+    private PromotionPane promotionPane;
+    private boolean awaitingPromotion;
+    private boolean gameOver;
 
     private Squad whiteSquad;
     private Squad blackSquad;
+
+    // The square a pawn may capture into via en passant this turn (null if none).
+    // Set when a pawn double-moves; cleared at the start of every move.
+    private Position enPassantTarget;
 
     public ChessBoard()
     {
@@ -151,6 +158,8 @@ public class ChessBoard extends GridPane
 
     private void processSelection(BoardSquareView square)
     {
+        if (awaitingPromotion || gameOver) return;
+
         // select a square/piece (no previous selection)
         if(null == selectedSquare && square.isOccupied())
         {
@@ -192,7 +201,7 @@ public class ChessBoard extends GridPane
                     {
                         if(selectedPiece.isAllowedMove(square.getPosition()))
                         {
-                            takePiece(selectedPiece, selectedSquare, square);
+                            movePiece(selectedPiece, selectedSquare, square);
                         }
                     }
                     else
@@ -209,6 +218,7 @@ public class ChessBoard extends GridPane
     private void movePiece(ChessPiece selectedPiece, BoardSquareView from, BoardSquareView to)
     {
         setStatus("");
+        enPassantTarget = null;
 
         // Detect castling: king moving two squares horizontally
         if (selectedPiece.getType() == Piece.KING &&
@@ -218,12 +228,52 @@ public class ChessBoard extends GridPane
             return;
         }
 
+        // En passant execution: pawn moves diagonally to an empty square
+        if (selectedPiece.getType() == Piece.PAWN &&
+            from.getPosition().getX() != to.getPosition().getX() &&
+            !to.isOccupied())
+        {
+            // The captured pawn sits on the same file as the destination but the same rank as the source
+            BoardSquareView capturedSquare = squaresMap.get(new Position(to.getPosition().getX(), from.getPosition().getY()));
+            if (capturedSquare != null) capturedSquare.setCurrentPiece(null);
+        }
+
         from.setCurrentPiece(null);
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
         setSelectedSquare(to, false);
         if(selectedPiece.isFirstMove())
             selectedPiece.setMoved();
+
+        // Record en passant target if a pawn just double-moved
+        if (selectedPiece.getType() == Piece.PAWN &&
+            Math.abs(to.getPosition().getY() - from.getPosition().getY()) == 2)
+        {
+            int midY = (from.getPosition().getY() + to.getPosition().getY()) / 2;
+            enPassantTarget = new Position(to.getPosition().getX(), midY);
+        }
+
+        // Pawn promotion — show picker and defer endTurn() until piece is chosen
+        int promotionRank = selectedPiece.getColor() == TeamColor.WHITE ? 7 : 0;
+        if (selectedPiece.getType() == Piece.PAWN && to.getPosition().getY() == promotionRank)
+        {
+            if (promotionPane != null)
+            {
+                awaitingPromotion = true;
+                promotionPane.show(selectedPiece.getColor(), chosenType -> {
+                    selectedPiece.promote(chosenType);
+                    // Refresh the square's view so it shows the new piece image
+                    to.setCurrentPiece(null);
+                    to.setCurrentPiece(selectedPiece);
+                    awaitingPromotion = false;
+                    endTurn();
+                });
+                return;
+            }
+            // Fallback if no promotion pane: auto-queen
+            selectedPiece.promote(Piece.QUEEN);
+        }
+
         endTurn();
     }
 
@@ -254,17 +304,6 @@ public class ChessBoard extends GridPane
         rook.setMoved();
 
         setSelectedSquare(kingFrom, false);
-        endTurn();
-    }
-
-    private void takePiece(ChessPiece selectedPiece, BoardSquareView from, BoardSquareView to)
-    {
-        from.setCurrentPiece(null);
-        to.setCurrentPiece(selectedPiece);
-        setSelectedSquare(from, false);
-        setSelectedSquare(to, false);
-        if(selectedPiece.isFirstMove())
-            selectedPiece.setMoved();
         endTurn();
     }
 
@@ -303,20 +342,7 @@ public class ChessBoard extends GridPane
 
     private TeamColor decideColor(int i, int j)
     {
-        if(i % 2 == 0)
-        {
-            if(j % 2 == 0)
-                return TeamColor.BLACK;
-            else
-                return TeamColor.WHITE;
-        }
-        else
-        {
-            if(j % 2 == 0)
-                return TeamColor.WHITE;
-            else
-                return TeamColor.BLACK;
-        }
+        return (i + j) % 2 == 0 ? TeamColor.BLACK : TeamColor.WHITE;
     }
 
     public void setControlsPane(ControlsPane controlsPane)
@@ -327,6 +353,11 @@ public class ChessBoard extends GridPane
     public void setWarningLabel(Label label)
     {
         this.warningLabel = label;
+    }
+
+    public void setPromotionPane(PromotionPane pane)
+    {
+        this.promotionPane = pane;
     }
 
     private void setStatus(String message)
@@ -396,19 +427,34 @@ public class ChessBoard extends GridPane
         // and when the active player's castling moves are evaluated.
         calculateSquadMoves(enemy);
         calculateSquadMoves(squad);
-        checkForCheck(squad, enemy);
+        checkGameState(squad, enemy);
     }
 
-    private void checkForCheck(Squad currentSquad, Squad enemySquad)
+    private void checkGameState(Squad currentSquad, Squad enemySquad)
     {
+        int totalMoves = 0;
         for (ChessPiece piece : currentSquad.getSquad())
-        {
+            if (piece.isAlive() && piece.getAllowedMoves() != null)
+                totalMoves += piece.getAllowedMoves().size();
+
+        ChessPiece king = null;
+        for (ChessPiece piece : currentSquad.getSquad())
             if (piece.isAlive() && piece.getType() == Piece.KING)
-            {
-                if (MovesCalculator.isInCheck(piece, enemySquad.getSquad()))
-                    showMessage("Check!", null);
-                return;
-            }
+                { king = piece; break; }
+
+        boolean inCheck = king != null && MovesCalculator.isInCheck(king, enemySquad.getSquad());
+
+        if (totalMoves == 0)
+        {
+            gameOver = true;
+            if (inCheck)
+                showMessage(enemySquad.getColor().getColorName() + " wins by checkmate!", null);
+            else
+                showMessage("Stalemate — it's a draw!", null);
+        }
+        else if (inCheck)
+        {
+            showMessage("Check!", null);
         }
     }
 
@@ -417,7 +463,7 @@ public class ChessBoard extends GridPane
         Squad enemySquad = squad.getColor() == TeamColor.WHITE ? blackSquad : whiteSquad;
         ChessPiece[] enemyPieces = enemySquad.getSquad();
         for (ChessPiece piece : squad.getSquad())
-            piece.setAllowedMoves(new MovesCalculator(piece, modelSquares, enemyPieces).calculate());
+            piece.setAllowedMoves(new MovesCalculator(piece, modelSquares, enemyPieces, enPassantTarget).calculate());
         filterMovesForCheck(squad, enemySquad);
     }
 
@@ -562,6 +608,8 @@ public class ChessBoard extends GridPane
 
     private void clearBoard()
     {
+        enPassantTarget = null;
+        gameOver = false;
         for(BoardSquareView square : squaresMap.values())
         {
             square.clearSquare();

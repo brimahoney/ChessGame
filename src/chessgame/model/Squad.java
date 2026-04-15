@@ -2,27 +2,18 @@ package chessgame.model;
 
 public class Squad
 {
-    private ChessPiece king;
-    private ChessPiece queen;
-    private ChessPiece[] bishops = new ChessPiece[2];
-    private ChessPiece[] knights = new ChessPiece[2];
-    private ChessPiece[] rooks = new ChessPiece[2];
-    private ChessPiece[] pawns = new ChessPiece[8];
-
     private final TeamColor color;
-
-    private ChessPiece[] pieces;
+    private final ChessPiece[] pieces;
 
     public Squad(TeamColor color)
     {
         this.color = color;
-        pieces = new ChessPiece[16];
-        createSquad(color);
+        this.pieces = createPieces(color);
     }
 
     public TeamColor getColor()
     {
-        return this.color;
+        return color;
     }
 
     public ChessPiece[] getSquad()
@@ -30,83 +21,28 @@ public class Squad
         return pieces;
     }
 
-    private void createSquad(TeamColor color)
+    private static ChessPiece[] createPieces(TeamColor color)
     {
-        int i = 0;
-        createKingAndQueen(color);
-        pieces[i++] = this.king;
-        pieces[i++] = this.queen;
-        createBishops(color);
-        pieces[i++] = this.bishops[0];
-        pieces[i++] = this.bishops[1];
-        createKnights(color);
-        pieces[i++] = this.knights[0];
-        pieces[i++] = this.knights[1];
-        createRooks(color);
-        pieces[i++] = this.rooks[0];
-        pieces[i++] = this.rooks[1];
-        createPawns(color);
-        for (ChessPiece pawn : this.pawns)
-        {
-            pieces[i++] = pawn;
-        }
-    }
+        int back = color == TeamColor.WHITE ? 1 : 8;
+        int pawn = color == TeamColor.WHITE ? 2 : 7;
 
-    private void createKingAndQueen(TeamColor color)
-    {
-        int rank = Squad.decideRank(color, false);
-        this.king = new ChessPiece(new Position('e', rank), color, Piece.KING);
-        this.queen = new ChessPiece(new Position('d', rank), color, Piece.QUEEN);
-    }
-
-    private void createBishops(TeamColor color)
-    {
-        int rank = Squad.decideRank(color, false);
-        bishops[0] = new ChessPiece(new Position('c', rank), color, Piece.BISHOP);
-        bishops[1] = new ChessPiece(new Position('f', rank), color, Piece.BISHOP);
-    }
-
-    private void createKnights(TeamColor color)
-    {
-        int rank = Squad.decideRank(color, false);
-        knights[0] = new ChessPiece(new Position('b', rank), color, Piece.KNIGHT);
-        knights[1] = new ChessPiece(new Position('g', rank), color, Piece.KNIGHT);
-    }
-
-    private void createRooks(TeamColor color)
-    {
-        int rank = Squad.decideRank(color, false);
-        rooks[0] = new ChessPiece(new Position('a', rank), color, Piece.ROOK);
-        rooks[1] = new ChessPiece(new Position('h', rank), color, Piece.ROOK);
-    }
-
-    private void createPawns(TeamColor color)
-    {
-        int rank = Squad.decideRank(color, true);
-        char file = 'a';
-
-        for(int i = 0; i < pawns.length; i++)
-        {
-            pawns[i] = new ChessPiece(new Position(file++, rank), color, Piece.PAWN);
-        }
-    }
-
-    public void promotePawn()
-    {
-        // promote the pawn to queen, rook, bishop, or knight
-    }
-
-    public static int decideRank(TeamColor color, boolean isPawn)
-    {
-        int rank;
-        if(color == TeamColor.WHITE)
-        {
-            rank = isPawn ? 2 : 1;
-        }
-        else
-        {
-            rank = isPawn ? 7 : 8;
-        }
-        return rank;
+        return new ChessPiece[] {
+            new ChessPiece(new Position('e', back), color, Piece.KING),
+            new ChessPiece(new Position('d', back), color, Piece.QUEEN),
+            new ChessPiece(new Position('c', back), color, Piece.BISHOP),
+            new ChessPiece(new Position('f', back), color, Piece.BISHOP),
+            new ChessPiece(new Position('b', back), color, Piece.KNIGHT),
+            new ChessPiece(new Position('g', back), color, Piece.KNIGHT),
+            new ChessPiece(new Position('a', back), color, Piece.ROOK),
+            new ChessPiece(new Position('h', back), color, Piece.ROOK),
+            new ChessPiece(new Position('a', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('b', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('c', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('d', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('e', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('f', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('g', pawn),  color, Piece.PAWN),
+            new ChessPiece(new Position('h', pawn),  color, Piece.PAWN),
+        };
     }
 }

@@ -23,12 +23,14 @@ public class MovesCalculator
     private final ChessPiece piece;
     private final BoardSquare[][] board;
     private final ChessPiece[] enemyPieces;
+    private final Position enPassantTarget;
 
-    public MovesCalculator(ChessPiece piece, BoardSquare[][] board, ChessPiece[] enemyPieces)
+    public MovesCalculator(ChessPiece piece, BoardSquare[][] board, ChessPiece[] enemyPieces, Position enPassantTarget)
     {
         this.piece = piece;
         this.board = board;
         this.enemyPieces = enemyPieces;
+        this.enPassantTarget = enPassantTarget;
     }
 
     public Set<Position> calculate()
@@ -131,14 +133,17 @@ public class MovesCalculator
                 moves.add(new Position(x, y + 2 * dy));
         }
 
-        // Diagonal captures — only if an enemy occupies the square
+        // Diagonal captures — normal capture or en passant
         for (int dx : new int[]{-1, 1})
         {
             if (isValidPosition(x + dx, y + dy))
             {
+                Position diag = new Position(x + dx, y + dy);
                 BoardSquare sq = board[x + dx][y + dy];
                 if (sq.isOccupied() && !sq.getCurrentPiece().isFriendly(piece))
-                    moves.add(new Position(x + dx, y + dy));
+                    moves.add(diag);
+                else if (diag.equals(enPassantTarget))
+                    moves.add(diag);
             }
         }
         return moves;
@@ -232,12 +237,6 @@ public class MovesCalculator
                 attacked.addAll(enemy.getAllowedMoves());
         }
         return attacked;
-    }
-
-    private Set<Position> calculateEnPassantMove()
-    {
-        // TODO: implement en passant
-        return Collections.emptySet();
     }
 
     /** Both diagonal squares a pawn threatens, regardless of occupancy. */

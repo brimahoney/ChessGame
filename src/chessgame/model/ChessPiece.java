@@ -10,7 +10,7 @@ public class ChessPiece
 {
     private Position position;
     private final TeamColor color;
-    private final Piece type;
+    private Piece type;
     private boolean isFirstMove = true;
     private boolean isAlive = true;
     private Set<Position> allowedMoves;
@@ -85,6 +85,11 @@ public class ChessPiece
     public boolean isAllowedMove(Position position)
     {
         return allowedMoves != null && allowedMoves.contains(position);
+    }
+
+    public void promote(Piece newType)
+    {
+        this.type = newType;
     }
 
     public boolean isFriendly(ChessPiece other)

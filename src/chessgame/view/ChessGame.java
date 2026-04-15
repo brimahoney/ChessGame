@@ -18,6 +18,7 @@ public class ChessGame extends Application
     private final ControlsPane controlsPane;
     private final BorderPane mainLayout;
     private final Label warningLabel;
+    private final PromotionPane promotionPane;
     private final NetworkManager networkManager;
     
     public ChessGame()
@@ -34,12 +35,10 @@ public class ChessGame extends Application
         warningLabel.setMouseTransparent(true);
         warningLabel.setVisible(false);
         chessBoard.setWarningLabel(warningLabel);
-        //gridPane.setPadding(new Insets(10, 10, 10, 10));
-        //gridPane.setAlignment(Pos.CENTER); 
-        //gridPane.setBorder(new Border(new BorderStroke(Paint.valueOf("BLACK"), 
-          //  BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
-        //gridPane.getTransforms().add(new Rotate(180, 400, 400));
-        
+
+        promotionPane = new PromotionPane();
+        chessBoard.setPromotionPane(promotionPane);
+
         networkManager = new NetworkManager();
     }
     
@@ -47,7 +46,7 @@ public class ChessGame extends Application
     public void start(Stage primaryStage)
     {
         mainLayout.setTop(controlsPane);
-        mainLayout.setCenter(new StackPane(chessBoard, warningLabel));
+        mainLayout.setCenter(new StackPane(chessBoard, warningLabel, promotionPane));
         Scene scene = new Scene(mainLayout); //, 800, 800 + controlsPane.getHeight());
 
         primaryStage.setTitle("Chess");
