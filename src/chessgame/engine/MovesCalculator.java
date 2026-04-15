@@ -220,23 +220,64 @@ public class MovesCalculator
 
     /**
      * Returns all squares threatened by the enemy — used to restrict king movement.
-     * Pawns are handled separately: their allowedMoves only include occupied diagonal
-     * squares (capture targets), but they threaten both diagonal squares ahead whether
-     * empty or not. All other pieces threaten exactly their allowedMoves squares.
+     * Sliding pieces (rook/bishop/queen) are recalculated fresh, treating the king's
+     * current square as transparent so their rays extend through it.  This prevents
+     * the king from "hiding" behind itself when evaluating escape squares.
+     * Non-sliding pieces (knight, enemy king) use their stored allowedMoves.
+     * Pawns use their diagonal attack squares regardless of occupancy.
      */
     private Set<Position> getEnemyAttackedSquares()
     {
         Set<Position> attacked = new HashSet<>();
+        Position kingPos = piece.getPosition(); // 'piece' is always the king here
+
         for (ChessPiece enemy : enemyPieces)
         {
             if (!enemy.isAlive()) continue;
 
-            if (enemy.getType() == Piece.PAWN)
-                attacked.addAll(getPawnAttackSquares(enemy));
-            else if (enemy.getAllowedMoves() != null)
-                attacked.addAll(enemy.getAllowedMoves());
+            switch (enemy.getType())
+            {
+                case PAWN -> attacked.addAll(getPawnAttackSquares(enemy));
+                case KNIGHT, KING -> {
+                    if (enemy.getAllowedMoves() != null)
+                        attacked.addAll(enemy.getAllowedMoves());
+                }
+                case ROOK -> {
+                    for (int[] d : CARDINAL)
+                        attacked.addAll(slidingAttacksThrough(enemy, d[0], d[1], kingPos));
+                }
+                case BISHOP -> {
+                    for (int[] d : DIAGONAL)
+                        attacked.addAll(slidingAttacksThrough(enemy, d[0], d[1], kingPos));
+                }
+                case QUEEN -> {
+                    for (int[] d : ALL_DIRS)
+                        attacked.addAll(slidingAttacksThrough(enemy, d[0], d[1], kingPos));
+                }
+            }
         }
         return attacked;
+    }
+
+    /**
+     * Traces a ray from a sliding enemy in direction (dx, dy), treating kingPos as
+     * transparent so the ray continues through the king's square.
+     */
+    private Set<Position> slidingAttacksThrough(ChessPiece slider, int dx, int dy, Position kingPos)
+    {
+        Set<Position> attacks = new HashSet<>();
+        int x = slider.getPosition().getX() + dx;
+        int y = slider.getPosition().getY() + dy;
+        while (isValidPosition(x, y))
+        {
+            attacks.add(new Position(x, y));
+            // Only the king's square is transparent; any other piece stops the ray
+            if (!new Position(x, y).equals(kingPos) && board[x][y].isOccupied())
+                break;
+            x += dx;
+            y += dy;
+        }
+        return attacks;
     }
 
     /** Both diagonal squares a pawn threatens, regardless of occupancy. */

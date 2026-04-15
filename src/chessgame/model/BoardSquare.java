@@ -55,6 +55,16 @@ public class BoardSquare
         return isOccupied;
     }
 
+    /**
+     * Sets the piece directly without side effects — no setIsAlive, no setPosition.
+     * For move simulation only; never use during normal play.
+     */
+    public void setCurrentPieceDirect(ChessPiece piece)
+    {
+        this.currentPiece = piece;
+        this.isOccupied   = (piece != null);
+    }
+
     public void clearSquare()
     {
         setCurrentPiece(null);

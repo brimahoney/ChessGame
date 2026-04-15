@@ -7,10 +7,8 @@ import chessgame.model.Piece;
 import chessgame.model.Position;
 import chessgame.model.Squad;
 import chessgame.model.TeamColor;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javafx.animation.FadeTransition;
@@ -568,50 +566,129 @@ public class ChessBoard extends GridPane
     }
 
     /**
-     * When the king is in check, non-king pieces may only move to squares that
-     * resolve the check.  In a double check only the king can move.
+     * Filters every piece's allowed moves to only those that do not leave the king
+     * in check.  Handles pins, double-checks, and all other cases by simulating each
+     * candidate move on the model board and testing whether the king is attacked.
      */
     private void filterMovesForCheck(Squad squad, Squad enemySquad)
     {
         ChessPiece king = null;
         for (ChessPiece piece : squad.getSquad())
-        {
             if (piece.isAlive() && piece.getType() == Piece.KING)
-            {
-                king = piece;
-                break;
-            }
-        }
+                { king = piece; break; }
+        if (king == null) return;
 
-        if (king == null || !MovesCalculator.isInCheck(king, enemySquad.getSquad()))
-            return;
-
-        List<ChessPiece> attackers = MovesCalculator.findAttackers(king, enemySquad.getSquad());
-
-        if (attackers.size() > 1)
-        {
-            // Double check — only the king may move
-            for (ChessPiece piece : squad.getSquad())
-            {
-                if (piece.isAlive() && piece.getType() != Piece.KING)
-                    piece.setAllowedMoves(Collections.emptySet());
-            }
-            return;
-        }
-
-        // Single check — non-king pieces may only block or capture the attacker
-        Set<Position> resolvingSquares = MovesCalculator.getCheckResolvingPositions(
-                king.getPosition(), attackers.get(0));
-
+        ChessPiece[] enemies = enemySquad.getSquad();
         for (ChessPiece piece : squad.getSquad())
         {
-            if (piece.isAlive() && piece.getType() != Piece.KING)
+            if (!piece.isAlive()) continue;
+            Set<Position> legal = new HashSet<>();
+            for (Position to : piece.getAllowedMoves())
             {
-                Set<Position> filtered = new HashSet<>(piece.getAllowedMoves());
-                filtered.retainAll(resolvingSquares);
-                piece.setAllowedMoves(filtered);
+                if (!leavesKingInCheck(piece, to, king, enemies))
+                    legal.add(to);
             }
+            piece.setAllowedMoves(legal);
         }
+    }
+
+    /**
+     * Simulates moving piece to 'to' on the model board (without side effects),
+     * then checks whether the king would be in check in that position.
+     * Also validates castling transit squares.
+     */
+    private boolean leavesKingInCheck(ChessPiece piece, Position to,
+                                       ChessPiece king, ChessPiece[] enemies)
+    {
+        Position from = piece.getPosition();
+        int fx = from.getX(), fy = from.getY();
+        int tx = to.getX(),   ty = to.getY();
+
+        // En passant: the captured pawn sits on the same file as 'to' but same rank as 'from'
+        boolean isEnPassant = piece.getType() == Piece.PAWN
+                && fx != tx && !modelSquares[tx][ty].isOccupied();
+        int epx = tx, epy = fy;
+
+        // Save
+        ChessPiece savedFrom = modelSquares[fx][fy].getCurrentPiece();
+        ChessPiece savedTo   = modelSquares[tx][ty].getCurrentPiece();
+        ChessPiece savedEp   = isEnPassant ? modelSquares[epx][epy].getCurrentPiece() : null;
+
+        // Apply (no side effects — piece.getPosition() is NOT updated)
+        modelSquares[fx][fy].setCurrentPieceDirect(null);
+        modelSquares[tx][ty].setCurrentPieceDirect(piece);
+        if (isEnPassant) modelSquares[epx][epy].setCurrentPieceDirect(null);
+
+        Position kingPos = piece.getType() == Piece.KING ? to : king.getPosition();
+        boolean inCheck = isKingAttackedDirect(kingPos, enemies);
+
+        // For castling also check that the king doesn't pass through an attacked square
+        if (!inCheck && piece.getType() == Piece.KING && Math.abs(tx - fx) == 2)
+        {
+            int transitX = fx + Integer.signum(tx - fx);
+            modelSquares[tx][ty].setCurrentPieceDirect(null);
+            modelSquares[transitX][fy].setCurrentPieceDirect(piece);
+            inCheck = isKingAttackedDirect(new Position(transitX, fy), enemies);
+            modelSquares[transitX][fy].setCurrentPieceDirect(null);
+            modelSquares[tx][ty].setCurrentPieceDirect(piece);
+        }
+
+        // Restore
+        modelSquares[fx][fy].setCurrentPieceDirect(savedFrom);
+        modelSquares[tx][ty].setCurrentPieceDirect(savedTo);
+        if (isEnPassant) modelSquares[epx][epy].setCurrentPieceDirect(savedEp);
+
+        return inCheck;
+    }
+
+    /**
+     * Directly checks whether kingPos is attacked by any live enemy piece
+     * given the current state of modelSquares (post-simulation).
+     * Does NOT use stored allowedMoves — reads the board directly.
+     */
+    private boolean isKingAttackedDirect(Position kingPos, ChessPiece[] enemies)
+    {
+        int kx = kingPos.getX(), ky = kingPos.getY();
+        for (ChessPiece enemy : enemies)
+        {
+            if (!enemy.isAlive()) continue;
+            int ex = enemy.getPosition().getX(), ey = enemy.getPosition().getY();
+            // Skip enemies that have been displaced from their square by the simulation
+            if (modelSquares[ex][ey].getCurrentPiece() != enemy) continue;
+
+            boolean attacks = switch (enemy.getType())
+            {
+                case PAWN -> {
+                    int dy = enemy.getColor() == TeamColor.WHITE ? 1 : -1;
+                    yield ky == ey + dy && (kx == ex - 1 || kx == ex + 1);
+                }
+                case KNIGHT -> {
+                    int adx = Math.abs(kx - ex), ady = Math.abs(ky - ey);
+                    yield (adx == 1 && ady == 2) || (adx == 2 && ady == 1);
+                }
+                case KING   -> Math.abs(kx - ex) <= 1 && Math.abs(ky - ey) <= 1;
+                case ROOK   -> (kx == ex || ky == ey) && isRayClearOnBoard(ex, ey, kx, ky);
+                case BISHOP -> Math.abs(kx - ex) == Math.abs(ky - ey) && isRayClearOnBoard(ex, ey, kx, ky);
+                case QUEEN  -> (kx == ex || ky == ey || Math.abs(kx - ex) == Math.abs(ky - ey))
+                               && isRayClearOnBoard(ex, ey, kx, ky);
+            };
+            if (attacks) return true;
+        }
+        return false;
+    }
+
+    /** True if no piece occupies any square strictly between (fromX,fromY) and (toX,toY). */
+    private boolean isRayClearOnBoard(int fromX, int fromY, int toX, int toY)
+    {
+        int dx = Integer.signum(toX - fromX), dy = Integer.signum(toY - fromY);
+        int x = fromX + dx, y = fromY + dy;
+        while (x != toX || y != toY)
+        {
+            if (modelSquares[x][y].isOccupied()) return false;
+            x += dx;
+            y += dy;
+        }
+        return true;
     }
 
     private void onDragStart(MouseEvent event)
