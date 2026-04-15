@@ -55,8 +55,11 @@ public class ChessBoard extends GridPane
     private PauseTransition warningPause;
     private FadeTransition warningFade;
     private PromotionPane promotionPane;
+    private MoveHistoryPane moveHistoryPane;
+    private String pendingMoveNotation;
     private boolean awaitingPromotion;
     private boolean gameOver;
+    private int halfMoveClock; // resets on pawn move or capture; draw at 100 (50 moves each)
 
     private Squad whiteSquad;
     private Squad blackSquad;
@@ -220,21 +223,32 @@ public class ChessBoard extends GridPane
         setStatus("");
         enPassantTarget = null;
 
-        // Detect castling: king moving two squares horizontally
-        if (selectedPiece.getType() == Piece.KING &&
+        // Capture state BEFORE the move — needed for notation and fifty-move clock
+        Piece originalType = selectedPiece.getType();
+        boolean isEnPassantCapture = originalType == Piece.PAWN
+                && from.getPosition().getX() != to.getPosition().getX()
+                && !to.isOccupied();
+        boolean isCapture = to.isOccupied() || isEnPassantCapture;
+
+        // Fifty-move clock
+        if (originalType == Piece.PAWN || isCapture)
+            halfMoveClock = 0;
+        else
+            halfMoveClock++;
+
+        // Castling
+        if (originalType == Piece.KING &&
             Math.abs(to.getPosition().getX() - from.getPosition().getX()) == 2)
         {
             executeCastling(selectedPiece, from, to);
             return;
         }
 
-        // En passant execution: pawn moves diagonally to an empty square
-        if (selectedPiece.getType() == Piece.PAWN &&
-            from.getPosition().getX() != to.getPosition().getX() &&
-            !to.isOccupied())
+        // En passant: remove the captured pawn
+        if (isEnPassantCapture)
         {
-            // The captured pawn sits on the same file as the destination but the same rank as the source
-            BoardSquareView capturedSquare = squaresMap.get(new Position(to.getPosition().getX(), from.getPosition().getY()));
+            BoardSquareView capturedSquare = squaresMap.get(
+                    new Position(to.getPosition().getX(), from.getPosition().getY()));
             if (capturedSquare != null) capturedSquare.setCurrentPiece(null);
         }
 
@@ -242,27 +256,29 @@ public class ChessBoard extends GridPane
         to.setCurrentPiece(selectedPiece);
         setSelectedSquare(from, false);
         setSelectedSquare(to, false);
-        if(selectedPiece.isFirstMove())
+        if (selectedPiece.isFirstMove())
             selectedPiece.setMoved();
 
-        // Record en passant target if a pawn just double-moved
-        if (selectedPiece.getType() == Piece.PAWN &&
+        // Set en passant target for opponent's next turn
+        if (originalType == Piece.PAWN &&
             Math.abs(to.getPosition().getY() - from.getPosition().getY()) == 2)
         {
             int midY = (from.getPosition().getY() + to.getPosition().getY()) / 2;
             enPassantTarget = new Position(to.getPosition().getX(), midY);
         }
 
-        // Pawn promotion — show picker and defer endTurn() until piece is chosen
+        // Pawn promotion
         int promotionRank = selectedPiece.getColor() == TeamColor.WHITE ? 7 : 0;
-        if (selectedPiece.getType() == Piece.PAWN && to.getPosition().getY() == promotionRank)
+        if (originalType == Piece.PAWN && to.getPosition().getY() == promotionRank)
         {
             if (promotionPane != null)
             {
                 awaitingPromotion = true;
+                Position fromPos = from.getPosition();
+                Position toPos   = to.getPosition();
                 promotionPane.show(selectedPiece.getColor(), chosenType -> {
+                    pendingMoveNotation = buildNotation(Piece.PAWN, fromPos, toPos, isCapture, isEnPassantCapture, chosenType);
                     selectedPiece.promote(chosenType);
-                    // Refresh the square's view so it shows the new piece image
                     to.setCurrentPiece(null);
                     to.setCurrentPiece(selectedPiece);
                     awaitingPromotion = false;
@@ -270,10 +286,13 @@ public class ChessBoard extends GridPane
                 });
                 return;
             }
-            // Fallback if no promotion pane: auto-queen
             selectedPiece.promote(Piece.QUEEN);
+            pendingMoveNotation = buildNotation(Piece.PAWN, from.getPosition(), to.getPosition(), isCapture, isEnPassantCapture, Piece.QUEEN);
+            endTurn();
+            return;
         }
 
+        pendingMoveNotation = buildNotation(originalType, from.getPosition(), to.getPosition(), isCapture, isEnPassantCapture, null);
         endTurn();
     }
 
@@ -303,6 +322,7 @@ public class ChessBoard extends GridPane
         rookTo.setCurrentPiece(rook);
         rook.setMoved();
 
+        pendingMoveNotation = kingside ? "O-O" : "O-O-O";
         setSelectedSquare(kingFrom, false);
         endTurn();
     }
@@ -358,6 +378,11 @@ public class ChessBoard extends GridPane
     public void setPromotionPane(PromotionPane pane)
     {
         this.promotionPane = pane;
+    }
+
+    public void setMoveHistoryPane(MoveHistoryPane pane)
+    {
+        this.moveHistoryPane = pane;
     }
 
     private void setStatus(String message)
@@ -443,19 +468,94 @@ public class ChessBoard extends GridPane
                 { king = piece; break; }
 
         boolean inCheck = king != null && MovesCalculator.isInCheck(king, enemySquad.getSquad());
+        boolean isMate  = totalMoves == 0 && inCheck;
+
+        // Record the completed move with check/checkmate annotation
+        if (pendingMoveNotation != null && moveHistoryPane != null)
+        {
+            String suffix = isMate ? "#" : inCheck ? "+" : "";
+            moveHistoryPane.addMove(pendingMoveNotation + suffix, enemySquad.getColor());
+            pendingMoveNotation = null;
+        }
 
         if (totalMoves == 0)
         {
             gameOver = true;
+            if (controlsPane != null) controlsPane.stopClock();
             if (inCheck)
                 showMessage(enemySquad.getColor().getColorName() + " wins by checkmate!", null);
             else
                 showMessage("Stalemate — it's a draw!", null);
+            return;
         }
-        else if (inCheck)
+
+        if (inCheck)
         {
             showMessage("Check!", null);
+            return;
         }
+
+        if (halfMoveClock >= 100)
+        {
+            gameOver = true;
+            if (controlsPane != null) controlsPane.stopClock();
+            showMessage("Draw — fifty-move rule", null);
+            return;
+        }
+
+        if (isInsufficientMaterial())
+        {
+            gameOver = true;
+            if (controlsPane != null) controlsPane.stopClock();
+            showMessage("Draw — insufficient material", null);
+        }
+    }
+
+    /**
+     * Returns true when neither side has enough material to deliver checkmate.
+     * Drawn cases: K vs K, K vs K+B, K vs K+N, K+B vs K+B (same-colored bishops).
+     */
+    private boolean isInsufficientMaterial()
+    {
+        int wCount = 0, bCount = 0;
+        ChessPiece whiteBishop = null, blackBishop = null;
+        boolean wHasHeavy = false, bHasHeavy = false;
+
+        for (ChessPiece p : whiteSquad.getSquad())
+        {
+            if (!p.isAlive()) continue;
+            wCount++;
+            if (p.getType() == Piece.BISHOP) whiteBishop = p;
+            if (p.getType() == Piece.QUEEN || p.getType() == Piece.ROOK || p.getType() == Piece.PAWN)
+                wHasHeavy = true;
+        }
+        for (ChessPiece p : blackSquad.getSquad())
+        {
+            if (!p.isAlive()) continue;
+            bCount++;
+            if (p.getType() == Piece.BISHOP) blackBishop = p;
+            if (p.getType() == Piece.QUEEN || p.getType() == Piece.ROOK || p.getType() == Piece.PAWN)
+                bHasHeavy = true;
+        }
+
+        if (wHasHeavy || bHasHeavy) return false;
+
+        // K vs K
+        if (wCount == 1 && bCount == 1) return true;
+
+        // K vs K+B  or  K vs K+N
+        if (wCount == 1 && bCount == 2) return true;
+        if (bCount == 1 && wCount == 2) return true;
+
+        // K+B vs K+B — draw only if both bishops are on the same colored square
+        if (wCount == 2 && bCount == 2 && whiteBishop != null && blackBishop != null)
+        {
+            int wSquare = (whiteBishop.getPosition().getX() + whiteBishop.getPosition().getY()) % 2;
+            int bSquare = (blackBishop.getPosition().getX() + blackBishop.getPosition().getY()) % 2;
+            return wSquare == bSquare;
+        }
+
+        return false;
     }
 
     public void calculateSquadMoves(Squad squad)
@@ -608,12 +708,50 @@ public class ChessBoard extends GridPane
 
     private void clearBoard()
     {
-        enPassantTarget = null;
-        gameOver = false;
+        enPassantTarget      = null;
+        gameOver             = false;
+        halfMoveClock        = 0;
+        awaitingPromotion    = false;
+        pendingMoveNotation  = null;
+        if (controlsPane != null) controlsPane.resetClock();
+        if (moveHistoryPane != null) moveHistoryPane.clear();
         for(BoardSquareView square : squaresMap.values())
         {
             square.clearSquare();
         }
+    }
+
+    private String buildNotation(Piece type, Position from, Position to,
+                                  boolean isCapture, boolean isEnPassant, Piece promotedTo)
+    {
+        StringBuilder sb = new StringBuilder();
+        if (type == Piece.PAWN)
+        {
+            if (isCapture) sb.append(from.getFile()).append('x');
+            sb.append(to.getFile()).append(to.getRank());
+            if (promotedTo != null) sb.append('=').append(pieceChar(promotedTo));
+            if (isEnPassant) sb.append(" e.p.");
+        }
+        else
+        {
+            sb.append(pieceChar(type));
+            if (isCapture) sb.append('x');
+            sb.append(to.getFile()).append(to.getRank());
+        }
+        return sb.toString();
+    }
+
+    private char pieceChar(Piece type)
+    {
+        return switch (type)
+        {
+            case KING   -> 'K';
+            case QUEEN  -> 'Q';
+            case ROOK   -> 'R';
+            case BISHOP -> 'B';
+            case KNIGHT -> 'N';
+            default     -> '?';
+        };
     }
 
 }

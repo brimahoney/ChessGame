@@ -19,6 +19,7 @@ public class ChessGame extends Application
     private final BorderPane mainLayout;
     private final Label warningLabel;
     private final PromotionPane promotionPane;
+    private final MoveHistoryPane moveHistoryPane;
     private final NetworkManager networkManager;
     
     public ChessGame()
@@ -39,6 +40,9 @@ public class ChessGame extends Application
         promotionPane = new PromotionPane();
         chessBoard.setPromotionPane(promotionPane);
 
+        moveHistoryPane = new MoveHistoryPane();
+        chessBoard.setMoveHistoryPane(moveHistoryPane);
+
         networkManager = new NetworkManager();
     }
     
@@ -47,6 +51,7 @@ public class ChessGame extends Application
     {
         mainLayout.setTop(controlsPane);
         mainLayout.setCenter(new StackPane(chessBoard, warningLabel, promotionPane));
+        mainLayout.setRight(moveHistoryPane);
         Scene scene = new Scene(mainLayout); //, 800, 800 + controlsPane.getHeight());
 
         primaryStage.setTitle("Chess");
