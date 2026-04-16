@@ -19,7 +19,8 @@ public class ChessPieceView extends ImageView
     {
         super(image);
         this.model = model;
-        this.setFitWidth(80);
+        this.setFitWidth(90);
+        this.setFitHeight(90);
         this.setPreserveRatio(true);
         this.setSmooth(true);
         this.setCache(true);

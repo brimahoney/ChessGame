@@ -7,7 +7,9 @@ import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
@@ -131,10 +133,45 @@ public class ControlsPane extends StackPane
         }));
         clockTimeline.setCycleCount(Timeline.INDEFINITE);
 
+        // Icon set selector
+        Label piecesLabel = new Label("Pieces:");
+        piecesLabel.setFont(Font.font(Font.getDefault().getName(), FontWeight.BOLD, 12));
+        piecesLabel.setTextFill(Color.web("#a0b0c0"));
+
+        ComboBox<String> iconSetCombo = new ComboBox<>();
+        iconSetCombo.getItems().addAll(ImageLibrary.getAvailableIconSets());
+        iconSetCombo.setValue(ImageLibrary.getCurrentIconSet());
+        iconSetCombo.setPrefHeight(28);
+        iconSetCombo.setStyle(
+                "-fx-background-color: #2e3d50; -fx-border-color: #4a6080; " +
+                "-fx-border-radius: 4; -fx-background-radius: 4;");
+        iconSetCombo.setButtonCell(new ListCell<>()
+        {
+            @Override
+            protected void updateItem(String item, boolean empty)
+            {
+                super.updateItem(item, empty);
+                setText(empty ? null : item);
+                setTextFill(Color.web("#d0d8e0"));
+                setStyle("-fx-background-color: transparent;");
+            }
+        });
+        iconSetCombo.setOnAction(e -> {
+            String selected = iconSetCombo.getValue();
+            if (selected != null && !selected.equals(ImageLibrary.getCurrentIconSet()))
+            {
+                ImageLibrary.loadIconSet(selected);
+                board.refreshPieces();
+            }
+        });
+
+        HBox iconSetBox = new HBox(6, piecesLabel, iconSetCombo);
+        iconSetBox.setAlignment(Pos.CENTER_LEFT);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        controlsBox.getChildren().addAll(turnIndicator, timerBox, statusLabel, spacer, radioBox, startButton);
+        controlsBox.getChildren().addAll(turnIndicator, timerBox, statusLabel, spacer, iconSetBox, radioBox, startButton);
         this.getChildren().add(controlsBox);
     }
 

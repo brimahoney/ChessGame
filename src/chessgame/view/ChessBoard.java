@@ -23,7 +23,11 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -62,6 +66,10 @@ public class ChessBoard extends GridPane
     private Squad whiteSquad;
     private Squad blackSquad;
 
+    // Width of the rank-label column and height of the file-label row (fixed, px)
+    private static final int RANK_LABEL_WIDTH  = 26;
+    private static final int FILE_LABEL_HEIGHT = 26;
+
     // The square a pawn may capture into via en passant this turn (null if none).
     // Set when a pawn double-moves; cleared at the start of every move.
     private Position enPassantTarget;
@@ -90,8 +98,6 @@ public class ChessBoard extends GridPane
             Label rankLabel = new Label(String.valueOf(8 - row));
             rankLabel.setFont(Font.font("SansSerif", FontWeight.BOLD, 13));
             rankLabel.setTextFill(Color.web("#d4b483"));
-            rankLabel.setPrefWidth(26);
-            rankLabel.setPrefHeight(100);
             rankLabel.setPadding(new Insets(0, 0, 0, 8));
             GridPane.setValignment(rankLabel, VPos.CENTER);
             GridPane.setHalignment(rankLabel, HPos.CENTER);
@@ -102,15 +108,37 @@ public class ChessBoard extends GridPane
             Label fileLabel = new Label(String.valueOf((char)('a' + col)));
             fileLabel.setFont(Font.font("SansSerif", FontWeight.BOLD, 13));
             fileLabel.setTextFill(Color.web("#d4b483"));
-            fileLabel.setPrefWidth(100);
-            fileLabel.setPrefHeight(26);
             fileLabel.setAlignment(Pos.CENTER);
             GridPane.setHalignment(fileLabel, HPos.CENTER);
             this.add(fileLabel, col, 8);
         }
 
+        // 8 game columns share all available horizontal space equally
+        for (int i = 0; i < 8; i++)
+        {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setHgrow(Priority.ALWAYS);
+            cc.setFillWidth(true);
+            this.getColumnConstraints().add(cc);
+        }
+        // Rank-label column: fixed width
+        this.getColumnConstraints().add(new ColumnConstraints(RANK_LABEL_WIDTH));
+
+        // 8 game rows share all available vertical space equally
+        for (int i = 0; i < 8; i++)
+        {
+            RowConstraints rc = new RowConstraints();
+            rc.setVgrow(Priority.ALWAYS);
+            rc.setFillHeight(true);
+            this.getRowConstraints().add(rc);
+        }
+        // File-label row: fixed height
+        this.getRowConstraints().add(new RowConstraints(FILE_LABEL_HEIGHT));
+
         this.setStyle("-fx-background-color: #3d2b1f;");
         this.setPadding(new Insets(10));
+        this.setMinSize(0, 0);
+        this.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         // Drag handling — intercept at board level so pieces float above all squares
         this.addEventFilter(MouseEvent.MOUSE_PRESSED,  this::onDragStart);
@@ -358,6 +386,13 @@ public class ChessBoard extends GridPane
         }
     }
 
+    /** Current width of one game square, derived from the board's actual rendered size. */
+    private double squareSize()
+    {
+        Insets pad = getPadding();
+        return (getWidth() - pad.getLeft() - pad.getRight() - RANK_LABEL_WIDTH) / 8;
+    }
+
     private TeamColor decideColor(int i, int j)
     {
         return (i + j) % 2 == 0 ? TeamColor.BLACK : TeamColor.WHITE;
@@ -419,6 +454,14 @@ public class ChessBoard extends GridPane
             });
             warningPause.play();
         }
+    }
+
+    /** Redraws all piece images after an icon set change. No model state is altered. */
+    public void refreshPieces()
+    {
+        for (BoardSquareView[] row : viewSquares)
+            for (BoardSquareView square : row)
+                square.refreshPieceView();
     }
 
     public void startGame(TeamColor color)
@@ -729,9 +772,9 @@ public class ChessBoard extends GridPane
         }
 
         Point2D mouse = this.sceneToLocal(event.getSceneX(), event.getSceneY());
-        // Centre the 80px image under the cursor (square is 100px, so offset by 50)
-        dragging.setTranslateX(mouse.getX() - dragOriginX - 50);
-        dragging.setTranslateY(mouse.getY() - dragOriginY - 50);
+        double half = squareSize() / 2;
+        dragging.setTranslateX(mouse.getX() - dragOriginX - half);
+        dragging.setTranslateY(mouse.getY() - dragOriginY - half);
     }
 
     private void onDragEnd(MouseEvent event)
@@ -754,10 +797,11 @@ public class ChessBoard extends GridPane
         dragging   = null;
 
         // Determine which square the piece was dropped on from mouse position.
-        // Board has 10px padding; each square is 100x100.
         Point2D mouse = this.sceneToLocal(event.getSceneX(), event.getSceneY());
-        int col = (int)((mouse.getX() - 10) / 100);
-        int row = (int)((mouse.getY() - 10) / 100);
+        double sq  = squareSize();
+        double pad = getPadding().getLeft();
+        int col = (int)((mouse.getX() - pad) / sq);
+        int row = (int)((mouse.getY() - pad) / sq);
 
         if (col < 0 || col > 7 || row < 0 || row > 7)
         {

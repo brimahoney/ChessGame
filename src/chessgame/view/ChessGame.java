@@ -49,15 +49,30 @@ public class ChessGame extends Application
     @Override
     public void start(Stage primaryStage)
     {
+        StackPane centerPane = new StackPane(chessBoard, warningLabel, promotionPane);
+        centerPane.setStyle("-fx-background-color: #3d2b1f;");
+
         mainLayout.setTop(controlsPane);
-        mainLayout.setCenter(new StackPane(chessBoard, warningLabel, promotionPane));
+        mainLayout.setCenter(centerPane);
         mainLayout.setRight(moveHistoryPane);
+        mainLayout.setStyle("-fx-background-color: #3d2b1f;");
         Scene scene = new Scene(mainLayout); //, 800, 800 + controlsPane.getHeight());
 
         primaryStage.setTitle("Chess");
         primaryStage.setScene(scene);
         primaryStage.show();
-        
+
+        // Keep the board square as the window resizes
+        Runnable fitBoard = () -> {
+            double availW = mainLayout.getWidth()  - moveHistoryPane.getWidth();
+            double availH = mainLayout.getHeight() - controlsPane.getHeight();
+            double size   = Math.max(0, Math.min(availW, availH));
+            chessBoard.setPrefSize(size, size);
+        };
+        mainLayout.widthProperty().addListener((obs, o, n)  -> fitBoard.run());
+        mainLayout.heightProperty().addListener((obs, o, n) -> fitBoard.run());
+        fitBoard.run();
+
         chessBoard.startGame(TeamColor.WHITE);
     }
 

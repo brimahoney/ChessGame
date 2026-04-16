@@ -22,7 +22,6 @@ import javafx.scene.shape.StrokeType;
  */
 public class BoardSquareView extends StackPane
 {
-    private final int widthAndHeight = 100;
     private final Rectangle rectangle;
     private final Circle highLightCircle;
     private boolean isSelected = false;
@@ -42,18 +41,25 @@ public class BoardSquareView extends StackPane
             : new LinearGradient(0.05, 0, 0.9, 0.75, true, CycleMethod.REFLECT,
                 new Stop(0, Color.web("#C49878")), new Stop(1, Color.web("#9A6640")));
 
-        this.rectangle = new Rectangle(widthAndHeight, widthAndHeight, woodGrain);
-        this.rectangle.setStrokeWidth(8);
+        this.rectangle = new Rectangle();
+        this.rectangle.widthProperty().bind(this.widthProperty());
+        this.rectangle.heightProperty().bind(this.heightProperty());
+        this.rectangle.setFill(woodGrain);
+        this.rectangle.strokeWidthProperty().bind(this.widthProperty().multiply(0.08));
         this.rectangle.setStrokeType(StrokeType.INSIDE);
         this.getChildren().add(this.rectangle);
 
-
         // Dot color adapts to the square: dark dot on light squares, light dot on dark squares
         Color dotColor = isLightSquare ? Color.color(0, 0, 0, 0.25) : Color.color(1, 1, 1, 0.22);
-        this.highLightCircle = new Circle(widthAndHeight / 5.0, dotColor);
-        //this.getChildren().add(this.highLightCircle);
+        this.highLightCircle = new Circle(20, dotColor);
+        this.highLightCircle.radiusProperty().bind(this.widthProperty().divide(5));
 
         this.model = model;
+
+        // Hint so the GridPane has an initial size to work with; the rectangle bindings
+        // take over once the layout system assigns actual column/row widths.
+        this.setPrefSize(100, 100);
+        this.setMinSize(0, 0);
 
         this.setOnDragEntered(getDragEnteredHandler());
         this.setOnDragExited(getDragExitedHandler());
@@ -84,6 +90,7 @@ public class BoardSquareView extends StackPane
         {
             currentPieceView = new ChessPieceView(
                     piece, ImageLibrary.getImage(piece.getType(), piece.getColor()));
+            bindPieceSize(currentPieceView);
             this.getChildren().add(currentPieceView);
         }
     }
@@ -110,11 +117,40 @@ public class BoardSquareView extends StackPane
             this.getChildren().remove(highLightCircle);
     }
 
+    /**
+     * Recreates the piece image view using the currently loaded icon set.
+     * Reads piece data from the model without any side effects on model state.
+     * Call this on every square after ImageLibrary.loadIconSet() switches sets.
+     */
+    public void refreshPieceView()
+    {
+        if (currentPieceView != null)
+        {
+            this.getChildren().remove(currentPieceView);
+            currentPieceView = null;
+        }
+        ChessPiece piece = model.getCurrentPiece();
+        if (piece != null)
+        {
+            currentPieceView = new ChessPieceView(
+                    piece, ImageLibrary.getImage(piece.getType(), piece.getColor()));
+            bindPieceSize(currentPieceView);
+            this.getChildren().add(currentPieceView);
+        }
+    }
+
     public void clearSquare()
     {
         setCurrentPiece(null);
         setSelected(false);
         highLight(false);
+    }
+
+    /** Binds a piece image's display size to 90% of this square's actual size. */
+    private void bindPieceSize(ChessPieceView pieceView)
+    {
+        pieceView.fitWidthProperty().bind(this.widthProperty().multiply(0.9));
+        pieceView.fitHeightProperty().bind(this.heightProperty().multiply(0.9));
     }
 
     private EventHandler<DragEvent> getDragEnteredHandler()
