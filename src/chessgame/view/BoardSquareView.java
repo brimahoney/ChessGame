@@ -149,8 +149,8 @@ public class BoardSquareView extends StackPane
     /** Binds a piece image's display size to 90% of this square's actual size. */
     private void bindPieceSize(ChessPieceView pieceView)
     {
-        pieceView.fitWidthProperty().bind(this.widthProperty().multiply(0.9));
-        pieceView.fitHeightProperty().bind(this.heightProperty().multiply(0.9));
+        pieceView.fitWidthProperty().bind(this.widthProperty().multiply(0.95));
+        pieceView.fitHeightProperty().bind(this.heightProperty().multiply(0.95));
     }
 
     private EventHandler<DragEvent> getDragEnteredHandler()

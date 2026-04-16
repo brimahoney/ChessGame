@@ -1,5 +1,7 @@
 package chessgame.view;
 
+import chessgame.engine.ChessAI;
+import chessgame.engine.ChessAI.Difficulty;
 import chessgame.engine.MovesCalculator;
 import chessgame.model.BoardSquare;
 import chessgame.model.ChessPiece;
@@ -65,6 +67,10 @@ public class ChessBoard extends GridPane
 
     private Squad whiteSquad;
     private Squad blackSquad;
+
+    // AI settings — aiColor == null means two-player mode (no AI)
+    private TeamColor aiColor     = null;
+    private Difficulty aiDifficulty = Difficulty.HARD;
 
     // Width of the rank-label column and height of the file-label row (fixed, px)
     private static final int RANK_LABEL_WIDTH  = 26;
@@ -297,7 +303,8 @@ public class ChessBoard extends GridPane
         int promotionRank = selectedPiece.getColor() == TeamColor.WHITE ? 7 : 0;
         if (originalType == Piece.PAWN && to.getPosition().getY() == promotionRank)
         {
-            if (promotionPane != null)
+            // AI always promotes to queen; only show the UI for human moves
+            if (promotionPane != null && selectedPiece.getColor() != aiColor)
             {
                 awaitingPromotion = true;
                 Position fromPos = from.getPosition();
@@ -464,12 +471,50 @@ public class ChessBoard extends GridPane
                 square.refreshPieceView();
     }
 
+    /** Configure the AI opponent. Pass null for color to disable AI (two-player mode). */
+    public void setAI(TeamColor color, Difficulty difficulty)
+    {
+        this.aiColor      = color;
+        this.aiDifficulty = difficulty;
+    }
+
     public void startGame(TeamColor color)
     {
         this.turn = color;
         if (controlsPane != null) controlsPane.setTurn(turn);
         Squad squad = turn.equals(TeamColor.WHITE) ? whiteSquad : blackSquad;
         calculateSquadMoves(squad);
+        if (!gameOver && aiColor != null && turn == aiColor)
+            triggerAI();
+    }
+
+    private void triggerAI()
+    {
+        int[][] board      = ChessAI.snapshot(modelSquares);
+        boolean[][] moved  = ChessAI.movedSnapshot(modelSquares);
+        int epFile = enPassantTarget != null ? enPassantTarget.getX() : -1;
+        int epRank = enPassantTarget != null ? enPassantTarget.getY() : -1;
+
+        var task = ChessAI.createTask(board, moved, epFile, epRank,
+                                      aiColor == TeamColor.WHITE, aiDifficulty);
+        task.setOnSucceeded(e -> {
+            int[] mv = task.getValue();
+            if (mv != null) executeAIMove(mv);
+        });
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void executeAIMove(int[] mv)
+    {
+        // mv = {fromFile, fromRank, toFile, toRank, promotionPiece}
+        BoardSquareView from = squaresMap.get(new Position(mv[0], mv[1]));
+        BoardSquareView to   = squaresMap.get(new Position(mv[2], mv[3]));
+        if (from == null || to == null || !from.isOccupied()) return;
+        ChessPiece piece = from.getCurrentPiece();
+        if (piece.getColor() != aiColor) return;
+        movePiece(piece, from, to);
     }
 
     public void startNewGame(TeamColor startingColor)
@@ -479,6 +524,7 @@ public class ChessBoard extends GridPane
         placePieces(whiteSquad);
         blackSquad = new Squad(TeamColor.BLACK);
         placePieces(blackSquad);
+        showMessage("Start", Duration.seconds(2));
         startGame(startingColor);
     }
 
@@ -494,6 +540,8 @@ public class ChessBoard extends GridPane
         calculateSquadMoves(enemy);
         calculateSquadMoves(squad);
         checkGameState(squad, enemy);
+        if (!gameOver && aiColor != null && turn == aiColor)
+            triggerAI();
     }
 
     private void checkGameState(Squad currentSquad, Squad enemySquad)
